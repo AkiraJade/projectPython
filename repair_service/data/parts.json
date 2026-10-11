@@ -1,0 +1,44 @@
+[
+  {
+    "part_id": "PRT-001",
+    "name": "500GB NVMe SSD",
+    "quantity": 8,
+    "unit_price": 1800.0
+  },
+  {
+    "part_id": "PRT-002",
+    "name": "8GB DDR4 RAM",
+    "quantity": 10,
+    "unit_price": 1200.0
+  },
+  {
+    "part_id": "PRT-003",
+    "name": "Thermal Paste (Arctic MX-4)",
+    "quantity": 14,
+    "unit_price": 300.0
+  },
+  {
+    "part_id": "PRT-004",
+    "name": "15.6\" FHD Slim LED Screen",
+    "quantity": 3,
+    "unit_price": 3200.0
+  },
+  {
+    "part_id": "PRT-005",
+    "name": "Laptop Battery 45Wh",
+    "quantity": 5,
+    "unit_price": 1600.0
+  },
+  {
+    "part_id": "PRT-006",
+    "name": "Universal Keyboard",
+    "quantity": 6,
+    "unit_price": 850.0
+  },
+  {
+    "part_id": "PRT-007",
+    "name": "65W Laptop Charger",
+    "quantity": 7,
+    "unit_price": 750.0
+  }
+]

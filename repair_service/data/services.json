@@ -1,0 +1,56 @@
+[
+  {
+    "service_id": "SRV-001",
+    "name": "Diagnostic",
+    "description": "Full hardware and software diagnostic check",
+    "price": 300.0
+  },
+  {
+    "service_id": "SRV-002",
+    "name": "OS Reinstallation",
+    "description": "Clean install of Windows/Linux OS with drivers",
+    "price": 500.0
+  },
+  {
+    "service_id": "SRV-003",
+    "name": "Virus Removal",
+    "description": "Malware, spyware, and virus cleanup",
+    "price": 400.0
+  },
+  {
+    "service_id": "SRV-004",
+    "name": "Screen Replacement",
+    "description": "LCD/LED panel replacement labor",
+    "price": 1500.0
+  },
+  {
+    "service_id": "SRV-005",
+    "name": "Battery Replacement",
+    "description": "Laptop battery replacement labor",
+    "price": 500.0
+  },
+  {
+    "service_id": "SRV-006",
+    "name": "Keyboard Replacement",
+    "description": "Internal laptop keyboard replacement labor",
+    "price": 800.0
+  },
+  {
+    "service_id": "SRV-007",
+    "name": "RAM/SSD Upgrade",
+    "description": "Storage or memory installation and configuration",
+    "price": 400.0
+  },
+  {
+    "service_id": "SRV-008",
+    "name": "Data Backup",
+    "description": "User files backup and transfer to external storage",
+    "price": 500.0
+  },
+  {
+    "service_id": "SRV-009",
+    "name": "Cleaning/Thermal Paste",
+    "description": "Internal dust removal and CPU/GPU thermal paste re-application",
+    "price": 450.0
+  }
+]

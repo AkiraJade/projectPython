@@ -1,0 +1,26 @@
+[
+  {
+    "user_id": "USR-001",
+    "username": "admin",
+    "password": "admin123",
+    "role": "Admin",
+    "full_name": "System Administrator",
+    "customer_id": ""
+  },
+  {
+    "user_id": "USR-002",
+    "username": "staff",
+    "password": "staff123",
+    "role": "Staff",
+    "full_name": "Front Desk Staff",
+    "customer_id": ""
+  },
+  {
+    "user_id": "USR-003",
+    "username": "tech1",
+    "password": "tech123",
+    "role": "Technician",
+    "full_name": "John Technician",
+    "customer_id": ""
+  }
+]

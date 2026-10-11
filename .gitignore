@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+repair_service/__pycache__/
+repair_service/gui/__pycache__/
+repair_service/backups/
