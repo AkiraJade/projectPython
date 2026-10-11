@@ -1,4 +1,4 @@
-# Billing and payment management module
+# Billing and payment management module with modern UI styling
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -7,28 +7,26 @@ import os
 import storage
 import models
 import validators
+import gui.theme as theme
 
 
 def show_billing_frame(parent, current_user):
     """
     Renders billing management: view balances, process payments, and generate official receipts.
     """
-    frame = ttk.Frame(parent, padding=10)
-    frame.pack(fill="both", expand=True)
+    card = ttk.Frame(parent, style="Card.TFrame", padding=16)
+    card.pack(fill="both", expand=True)
 
-    header_frame = ttk.Frame(frame)
-    header_frame.pack(fill="x", pady=(0, 10))
+    toolbar = ttk.Frame(card, style="Surface.TFrame")
+    toolbar.pack(fill="x", pady=(0, 12))
 
-    ttk.Label(
-        header_frame,
-        text="Billing & Payment Management",
-        font=("Arial", 14, "bold")
-    ).pack(side="left")
+    btn_bar = ttk.Frame(toolbar, style="Surface.TFrame")
+    btn_bar.pack(side="left")
 
-    controls_frame = ttk.Frame(header_frame)
+    controls_frame = ttk.Frame(toolbar, style="Surface.TFrame")
     controls_frame.pack(side="right")
 
-    ttk.Label(controls_frame, text="Payment Status:").pack(side="left", padx=(0, 4))
+    ttk.Label(controls_frame, text="Payment Status:", style="Surface.TLabel", font=theme.FONT_BODY).pack(side="left", padx=(0, 6))
     pay_filter = ttk.Combobox(
         controls_frame,
         values=["All", "Unpaid / Balance Due", "Fully Paid"],
@@ -36,39 +34,50 @@ def show_billing_frame(parent, current_user):
         width=20
     )
     pay_filter.set("All")
-    pay_filter.pack(side="left", padx=(0, 10))
+    pay_filter.pack(side="left", padx=(0, 12))
 
-    ttk.Label(controls_frame, text="Search:").pack(side="left", padx=(0, 4))
-    search_entry = ttk.Entry(controls_frame, width=18)
+    ttk.Label(controls_frame, text="Search:", style="Surface.TLabel", font=theme.FONT_BODY).pack(side="left", padx=(0, 6))
+    search_entry = ttk.Entry(controls_frame, width=20)
     search_entry.pack(side="left")
 
     # Table with Treeview
-    table_frame = ttk.Frame(frame)
+    table_frame = ttk.Frame(card, style="Surface.TFrame")
     table_frame.pack(fill="both", expand=True)
 
     columns = ("job_id", "customer", "device", "total_bill", "total_paid", "balance", "job_status")
     tree = ttk.Treeview(table_frame, columns=columns, show="headings", selectmode="browse")
 
     tree.heading("job_id", text="Job ID")
-    tree.heading("customer", text="Customer")
-    tree.heading("device", text="Device")
-    tree.heading("total_bill", text="Total (PHP)")
+    tree.heading("customer", text="Customer Name")
+    tree.heading("device", text="Device Description")
+    tree.heading("total_bill", text="Total Bill (PHP)")
     tree.heading("total_paid", text="Paid (PHP)")
-    tree.heading("balance", text="Balance (PHP)")
-    tree.heading("job_status", text="Job Status")
+    tree.heading("balance", text="Balance Due (PHP)")
+    tree.heading("job_status", text="Repair Status")
 
-    tree.column("job_id", width=85, anchor="center")
-    tree.column("customer", width=160)
-    tree.column("device", width=160)
-    tree.column("total_bill", width=110, anchor="e")
-    tree.column("total_paid", width=110, anchor="e")
-    tree.column("balance", width=110, anchor="e")
-    tree.column("job_status", width=110, anchor="center")
+    tree.column("job_id", width=95, anchor="center")
+    tree.column("customer", width=170)
+    tree.column("device", width=180)
+    tree.column("total_bill", width=130, anchor="e")
+    tree.column("total_paid", width=130, anchor="e")
+    tree.column("balance", width=140, anchor="e")
+    tree.column("job_status", width=130, anchor="center")
+
+    theme.setup_treeview_tags(tree)
+    tree.tag_configure("fully_paid", foreground=theme.COLOR_SUCCESS, font=theme.FONT_BODY_BOLD)
+    tree.tag_configure("balance_due", foreground=theme.COLOR_WARNING, font=theme.FONT_BODY_BOLD)
 
     scrollbar_y = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
     tree.configure(yscrollcommand=scrollbar_y.set)
     tree.pack(side="left", fill="both", expand=True)
     scrollbar_y.pack(side="right", fill="y")
+
+    empty_label = ttk.Label(
+        card,
+        text="No billing records found.",
+        style="SurfaceMuted.TLabel",
+        font=theme.FONT_BODY
+    )
 
     def get_customer_map():
         customers = storage.load_customers()
@@ -86,8 +95,9 @@ def show_billing_frame(parent, current_user):
 
         filter_choice = pay_filter.get()
         query = search_entry.get().strip().lower()
+        displayed_count = 0
 
-        for j in jobs:
+        for idx, j in enumerate(jobs):
             jid = j.get("job_id", "")
             cid = j.get("customer_id", "")
             cname = cust_map.get(cid, cid)
@@ -98,16 +108,17 @@ def show_billing_frame(parent, current_user):
             paid = models.compute_payments_total(jid, all_payments)
             balance = models.compute_balance(j, all_services, all_parts, all_payments)
 
-            # Filter logic
             if filter_choice == "Unpaid / Balance Due" and balance <= 0.0:
                 continue
             if filter_choice == "Fully Paid" and balance > 0.0:
                 continue
 
-            # Search logic
             if query:
                 if query not in jid.lower() and query not in cname.lower():
                     continue
+
+            zebra_tag = "even" if idx % 2 == 0 else "odd"
+            pay_tag = "fully_paid" if balance <= 0.0 else "balance_due"
 
             tree.insert("", "end", values=(
                 jid,
@@ -117,7 +128,13 @@ def show_billing_frame(parent, current_user):
                 f"{paid:,.2f}",
                 f"{balance:,.2f}",
                 jstatus
-            ))
+            ), tags=(zebra_tag, pay_tag))
+            displayed_count += 1
+
+        if displayed_count == 0:
+            empty_label.place(relx=0.5, rely=0.5, anchor="center")
+        else:
+            empty_label.place_forget()
 
     pay_filter.bind("<<ComboboxSelected>>", lambda e: refresh_table())
     search_entry.bind("<KeyRelease>", lambda e: refresh_table())
@@ -151,45 +168,46 @@ def show_billing_frame(parent, current_user):
         dialog.transient(parent.winfo_toplevel())
         dialog.grab_set()
         dialog.title(f"Process Payment - {jid}")
-        dialog.geometry("420x420")
+        dialog.configure(bg=theme.BG_SURFACE)
+        theme.center_window(dialog, 480, 460, 420, 400)
         dialog.resizable(False, False)
 
-        form = ttk.Frame(dialog, padding=20)
+        form = ttk.Frame(dialog, style="Surface.TFrame", padding=24)
         form.pack(fill="both", expand=True)
 
-        ttk.Label(form, text=f"Payment for Job Order: {jid}", font=("Arial", 12, "bold")).pack(anchor="w", pady=(0, 10))
+        ttk.Label(form, text=f"Payment for Job: {jid}", style="Surface.TLabel", font=theme.FONT_SECTION).pack(anchor="w")
+        ttk.Label(form, text="Record client payment and calculate change.", style="SurfaceMuted.TLabel").pack(anchor="w", pady=(2, 14))
 
-        # Balance breakdown display
-        summary_box = ttk.LabelFrame(form, text="Bill Summary", padding=10)
-        summary_box.pack(fill="x", pady=(0, 15))
+        # Balance breakdown display card
+        summary_box = ttk.LabelFrame(form, text="Bill Summary", padding=14)
+        summary_box.pack(fill="x", pady=(0, 14))
 
-        ttk.Label(summary_box, text=f"Total Bill:     PHP {total:,.2f}").pack(anchor="w", pady=2)
-        ttk.Label(summary_box, text=f"Already Paid:   PHP {paid:,.2f}").pack(anchor="w", pady=2)
-        bal_label = ttk.Label(summary_box, text=f"Balance Due:    PHP {balance:,.2f}", font=("Arial", 10, "bold"))
+        ttk.Label(summary_box, text=f"Total Bill:        PHP {total:,.2f}", style="Surface.TLabel").pack(anchor="w", pady=2)
+        ttk.Label(summary_box, text=f"Already Paid:      PHP {paid:,.2f}", style="SurfaceMuted.TLabel").pack(anchor="w", pady=2)
+        bal_label = ttk.Label(summary_box, text=f"Balance Due:       PHP {balance:,.2f}", style="Surface.TLabel", font=theme.FONT_BODY_BOLD, foreground=theme.COLOR_WARNING)
         bal_label.pack(anchor="w", pady=2)
 
         # Payment inputs
-        input_frame = ttk.Frame(form)
-        input_frame.pack(fill="x")
+        input_frame = ttk.LabelFrame(form, text="Transaction Details", padding=14)
+        input_frame.pack(fill="x", pady=(0, 16))
 
-        ttk.Label(input_frame, text="Payment Amount:").grid(row=0, column=0, sticky="w", pady=6)
+        ttk.Label(input_frame, text="Payment Amount *:", style="Surface.TLabel").grid(row=0, column=0, sticky="w", pady=6)
         amount_entry = ttk.Entry(input_frame, width=22)
-        amount_entry.grid(row=0, column=1, pady=6, padx=(10, 0))
-        # Default payment entry to current balance
+        amount_entry.grid(row=0, column=1, sticky="e", pady=6, padx=(10, 0))
         amount_entry.insert(0, f"{balance:.2f}")
 
-        ttk.Label(input_frame, text="Payment Method:").grid(row=1, column=0, sticky="w", pady=6)
-        method_combo = ttk.Combobox(input_frame, values=["Cash", "GCash", "Card"], state="readonly", width=19)
-        method_combo.grid(row=1, column=1, pady=6, padx=(10, 0))
+        ttk.Label(input_frame, text="Payment Method *:", style="Surface.TLabel").grid(row=1, column=0, sticky="w", pady=6)
+        method_combo = ttk.Combobox(input_frame, values=["Cash", "GCash", "Card"], state="readonly", width=20)
+        method_combo.grid(row=1, column=1, sticky="e", pady=6, padx=(10, 0))
         method_combo.current(0)
 
-        ttk.Label(input_frame, text="Cash Tendered:").grid(row=2, column=0, sticky="w", pady=6)
+        ttk.Label(input_frame, text="Cash Tendered:", style="Surface.TLabel").grid(row=2, column=0, sticky="w", pady=6)
         tendered_entry = ttk.Entry(input_frame, width=22)
-        tendered_entry.grid(row=2, column=1, pady=6, padx=(10, 0))
+        tendered_entry.grid(row=2, column=1, sticky="e", pady=6, padx=(10, 0))
         tendered_entry.insert(0, f"{balance:.2f}")
 
-        change_display = ttk.Label(input_frame, text="Change: PHP 0.00", font=("Arial", 9, "italic"))
-        change_display.grid(row=3, column=0, columnspan=2, sticky="w", pady=(5, 0))
+        change_display = ttk.Label(input_frame, text="Change: PHP 0.00", style="SurfaceMuted.TLabel", font=theme.FONT_BODY_BOLD)
+        change_display.grid(row=3, column=0, columnspan=2, sticky="w", pady=(8, 0))
 
         def update_change(event=None):
             amt_str = amount_entry.get().strip()
@@ -199,11 +217,11 @@ def show_billing_frame(parent, current_user):
                 tend = float(tend_str)
                 diff = tend - amt
                 if diff >= 0:
-                    change_display.configure(text=f"Change: PHP {diff:,.2f}")
+                    change_display.configure(text=f"Change: PHP {diff:,.2f}", foreground=theme.COLOR_SUCCESS)
                 else:
-                    change_display.configure(text="Change: (Insufficient Cash)")
+                    change_display.configure(text="Change: (Insufficient Cash)", foreground=theme.COLOR_DANGER)
             else:
-                change_display.configure(text="Change: PHP 0.00")
+                change_display.configure(text="Change: PHP 0.00", foreground=theme.TEXT_MUTED)
 
         amount_entry.bind("<KeyRelease>", update_change)
         tendered_entry.bind("<KeyRelease>", update_change)
@@ -230,7 +248,6 @@ def show_billing_frame(parent, current_user):
                 )
                 return
 
-            # If paying by Cash, verify tendered cash
             change_amount = 0.0
             if method == "Cash":
                 if not validators.is_valid_price(tend_str):
@@ -263,16 +280,14 @@ def show_billing_frame(parent, current_user):
             messagebox.showinfo("Payment Successful", msg, parent=dialog)
             dialog.destroy()
             refresh_table()
-
-            # Automatically offer official receipt
             open_receipt_window(jid)
 
-        btn_row = ttk.Frame(form)
-        btn_row.pack(fill="x", pady=(20, 0))
-        ttk.Button(btn_row, text="Confirm Payment", command=save_payment).pack(side="left", padx=5)
-        ttk.Button(btn_row, text="Cancel", command=dialog.destroy).pack(side="left", padx=5)
+        btn_row = ttk.Frame(form, style="Surface.TFrame")
+        btn_row.pack(fill="x")
+        ttk.Button(btn_row, text="Cancel", style="Secondary.TButton", command=dialog.destroy).pack(side="left")
+        ttk.Button(btn_row, text="Confirm Payment", style="Primary.TButton", command=save_payment).pack(side="right")
 
-    # Official Receipt / Invoice Window (FR-41)
+    # Official Receipt / Invoice Window
     def open_receipt_window(target_job_id=None):
         if not target_job_id:
             selected = tree.selection()
@@ -301,19 +316,19 @@ def show_billing_frame(parent, current_user):
         receipt_win = tk.Toplevel(parent)
         receipt_win.transient(parent.winfo_toplevel())
         receipt_win.title(f"Official Receipt - {target_job_id}")
-        receipt_win.geometry("560x540")
+        receipt_win.configure(bg=theme.BG_SURFACE)
+        theme.center_window(receipt_win, 620, 580, 560, 500)
 
-        txt_frame = ttk.Frame(receipt_win, padding=15)
+        txt_frame = ttk.Frame(receipt_win, style="Surface.TFrame", padding=20)
         txt_frame.pack(fill="both", expand=True)
 
-        text_widget = tk.Text(txt_frame, font=("Courier New", 10))
+        text_widget = tk.Text(txt_frame, font=theme.FONT_MONO, bg=theme.BG_SURFACE, relief="solid", borderwidth=1)
         text_scroll = ttk.Scrollbar(txt_frame, orient="vertical", command=text_widget.yview)
         text_widget.configure(yscrollcommand=text_scroll.set)
 
         text_widget.pack(side="left", fill="both", expand=True)
         text_scroll.pack(side="right", fill="y")
 
-        # Format Official Receipt
         lines = []
         lines.append("=" * 55)
         lines.append("       COMPUTER & LAPTOP REPAIR SERVICE")
@@ -329,7 +344,6 @@ def show_billing_frame(parent, current_user):
         lines.append("PARTICULARS                          AMOUNT (PHP)")
         lines.append("-" * 55)
 
-        # Services
         lines.append("[SERVICES]")
         for sid in job.get("services", []):
             sinfo = service_map.get(sid, {})
@@ -337,7 +351,6 @@ def show_billing_frame(parent, current_user):
             sprice = float(sinfo.get("price", 0.0))
             lines.append(f"  {sname:<34} {sprice:>12,.2f}")
 
-        # Parts
         job_parts = job.get("parts_used", [])
         if job_parts:
             lines.append("[PARTS REPLACED]")
@@ -381,7 +394,7 @@ def show_billing_frame(parent, current_user):
         text_widget.insert(tk.END, full_content)
         text_widget.configure(state="disabled")
 
-        btn_box = ttk.Frame(receipt_win, padding=(15, 0, 15, 10))
+        btn_box = ttk.Frame(receipt_win, style="Surface.TFrame", padding=(20, 0, 20, 16))
         btn_box.pack(fill="x")
 
         def export_receipt_txt():
@@ -396,14 +409,11 @@ def show_billing_frame(parent, current_user):
             except Exception as e:
                 messagebox.showerror("Export Error", f"Failed to save receipt: {e}", parent=receipt_win)
 
-        ttk.Button(btn_box, text="Export as .txt", command=export_receipt_txt).pack(side="left", padx=5)
-        ttk.Button(btn_box, text="Close", command=receipt_win.destroy).pack(side="right", padx=5)
+        ttk.Button(btn_box, text="Close", style="Secondary.TButton", command=receipt_win.destroy).pack(side="left")
+        ttk.Button(btn_box, text="Export as .txt", style="Primary.TButton", command=export_receipt_txt).pack(side="right")
 
-    btn_bar = ttk.Frame(frame)
-    btn_bar.pack(fill="x", pady=(10, 0))
-
-    ttk.Button(btn_bar, text="Process Payment", command=open_payment_dialog).pack(side="left", padx=5)
-    ttk.Button(btn_bar, text="View Official Receipt", command=open_receipt_window).pack(side="left", padx=5)
+    ttk.Button(btn_bar, text="Process Payment", style="Primary.TButton", command=open_payment_dialog).pack(side="left", padx=(0, 6))
+    ttk.Button(btn_bar, text="View Official Receipt", style="Secondary.TButton", command=open_receipt_window).pack(side="left")
 
     refresh_table()
-    return frame
+    return card

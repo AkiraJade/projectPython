@@ -1,39 +1,37 @@
-# Parts inventory management module
+# Parts inventory management module with modern table styling
 
 import tkinter as tk
 from tkinter import ttk, messagebox
 import storage
 import models
 import validators
+import gui.theme as theme
 
 LOW_STOCK_THRESHOLD = 3
 
 
 def show_parts_frame(parent, current_user):
     """
-    Renders parts inventory table, search, low-stock warnings, and add/edit dialogs.
+    Renders parts inventory table, search, and restyled add/edit dialogs.
     """
-    frame = ttk.Frame(parent, padding=10)
-    frame.pack(fill="both", expand=True)
+    card = ttk.Frame(parent, style="Card.TFrame", padding=16)
+    card.pack(fill="both", expand=True)
 
-    header_frame = ttk.Frame(frame)
-    header_frame.pack(fill="x", pady=(0, 10))
+    toolbar = ttk.Frame(card, style="Surface.TFrame")
+    toolbar.pack(fill="x", pady=(0, 12))
 
-    ttk.Label(
-        header_frame,
-        text="Parts & Inventory Management",
-        font=("Arial", 14, "bold")
-    ).pack(side="left")
+    btn_bar = ttk.Frame(toolbar, style="Surface.TFrame")
+    btn_bar.pack(side="left")
 
-    search_frame = ttk.Frame(header_frame)
+    search_frame = ttk.Frame(toolbar, style="Surface.TFrame")
     search_frame.pack(side="right")
 
-    ttk.Label(search_frame, text="Search:").pack(side="left", padx=(0, 5))
-    search_entry = ttk.Entry(search_frame, width=20)
+    ttk.Label(search_frame, text="Search:", style="Surface.TLabel", font=theme.FONT_BODY).pack(side="left", padx=(0, 6))
+    search_entry = ttk.Entry(search_frame, width=22)
     search_entry.pack(side="left")
 
-    # Table with Treeview
-    table_frame = ttk.Frame(frame)
+    # Table Container
+    table_frame = ttk.Frame(card, style="Surface.TFrame")
     table_frame.pack(fill="both", expand=True)
 
     columns = ("part_id", "name", "quantity", "unit_price", "status")
@@ -41,20 +39,30 @@ def show_parts_frame(parent, current_user):
 
     tree.heading("part_id", text="Part ID")
     tree.heading("name", text="Part Name")
-    tree.heading("quantity", text="In Stock")
+    tree.heading("quantity", text="Stock Qty")
     tree.heading("unit_price", text="Unit Price (PHP)")
     tree.heading("status", text="Stock Status")
 
-    tree.column("part_id", width=90, anchor="center")
-    tree.column("name", width=260)
-    tree.column("quantity", width=90, anchor="center")
-    tree.column("unit_price", width=120, anchor="e")
-    tree.column("status", width=120, anchor="center")
+    tree.column("part_id", width=100, anchor="center")
+    tree.column("name", width=300)
+    tree.column("quantity", width=100, anchor="center")
+    tree.column("unit_price", width=140, anchor="e")
+    tree.column("status", width=140, anchor="center")
+
+    theme.setup_treeview_tags(tree)
+    tree.tag_configure("low_stock", foreground=theme.COLOR_WARNING, font=theme.FONT_BODY_BOLD)
 
     scrollbar_y = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
     tree.configure(yscrollcommand=scrollbar_y.set)
     tree.pack(side="left", fill="both", expand=True)
     scrollbar_y.pack(side="right", fill="y")
+
+    empty_label = ttk.Label(
+        card,
+        text="No parts found in inventory.",
+        style="SurfaceMuted.TLabel",
+        font=theme.FONT_BODY
+    )
 
     def refresh_table(query=""):
         for row in tree.get_children():
@@ -62,8 +70,9 @@ def show_parts_frame(parent, current_user):
 
         parts = storage.load_parts()
         query = query.strip().lower()
+        displayed_count = 0
 
-        for p in parts:
+        for idx, p in enumerate(parts):
             pid = p.get("part_id", "")
             name = p.get("name", "")
             qty = int(p.get("quantity", 0))
@@ -73,19 +82,27 @@ def show_parts_frame(parent, current_user):
                 if query not in pid.lower() and query not in name.lower():
                     continue
 
-            status_text = "LOW STOCK!" if qty <= LOW_STOCK_THRESHOLD else "In Stock"
+            is_low = qty <= LOW_STOCK_THRESHOLD
+            status_text = "LOW STOCK!" if is_low else "In Stock"
+
+            zebra_tag = "even" if idx % 2 == 0 else "odd"
+            tag_list = (zebra_tag, "low_stock") if is_low else (zebra_tag,)
+
             tree.insert("", "end", values=(
                 pid,
                 name,
                 qty,
                 f"{price:,.2f}",
                 status_text
-            ))
+            ), tags=tag_list)
+            displayed_count += 1
 
-    def on_search_change(event=None):
-        refresh_table(search_entry.get())
+        if displayed_count == 0:
+            empty_label.place(relx=0.5, rely=0.5, anchor="center")
+        else:
+            empty_label.place_forget()
 
-    search_entry.bind("<KeyRelease>", on_search_change)
+    search_entry.bind("<KeyRelease>", lambda e: refresh_table(search_entry.get()))
 
     # Add / Edit Dialog
     def open_part_dialog(part_to_edit=None):
@@ -96,24 +113,31 @@ def show_parts_frame(parent, current_user):
         is_edit = part_to_edit is not None
         title_text = "Edit Part" if is_edit else "Add New Part"
         dialog.title(title_text)
-        dialog.geometry("380x260")
+        dialog.configure(bg=theme.BG_SURFACE)
+        theme.center_window(dialog, 440, 310, 400, 270)
         dialog.resizable(False, False)
 
-        form = ttk.Frame(dialog, padding=20)
+        form = ttk.Frame(dialog, style="Surface.TFrame", padding=24)
         form.pack(fill="both", expand=True)
 
-        ttk.Label(form, text="Part Name:").grid(row=0, column=0, sticky="w", pady=6)
-        name_entry = ttk.Entry(form, width=25)
-        name_entry.grid(row=0, column=1, pady=6, padx=(10, 0))
+        ttk.Label(form, text=title_text, style="Surface.TLabel", font=theme.FONT_SECTION).pack(anchor="w")
+        ttk.Label(form, text="Fields marked with * are required.", style="SurfaceMuted.TLabel").pack(anchor="w", pady=(2, 14))
 
-        ttk.Label(form, text="Stock Quantity:").grid(row=1, column=0, sticky="w", pady=6)
-        qty_spin = ttk.Spinbox(form, from_=0, to=9999, width=23)
-        qty_spin.grid(row=1, column=1, pady=6, padx=(10, 0))
+        grid = ttk.Frame(form, style="Surface.TFrame")
+        grid.pack(fill="x")
+
+        ttk.Label(grid, text="Part Name *:", style="Surface.TLabel").grid(row=0, column=0, sticky="w", pady=6)
+        name_entry = ttk.Entry(grid, width=26)
+        name_entry.grid(row=0, column=1, sticky="e", pady=6, padx=(10, 0))
+
+        ttk.Label(grid, text="Stock Quantity *:", style="Surface.TLabel").grid(row=1, column=0, sticky="w", pady=6)
+        qty_spin = ttk.Spinbox(grid, from_=0, to=9999, width=24)
+        qty_spin.grid(row=1, column=1, sticky="e", pady=6, padx=(10, 0))
         qty_spin.set(0)
 
-        ttk.Label(form, text="Unit Price (PHP):").grid(row=2, column=0, sticky="w", pady=6)
-        price_entry = ttk.Entry(form, width=25)
-        price_entry.grid(row=2, column=1, pady=6, padx=(10, 0))
+        ttk.Label(grid, text="Unit Price (PHP) *:", style="Surface.TLabel").grid(row=2, column=0, sticky="w", pady=6)
+        price_entry = ttk.Entry(grid, width=26)
+        price_entry.grid(row=2, column=1, sticky="e", pady=6, padx=(10, 0))
 
         if is_edit:
             name_entry.insert(0, part_to_edit.get("name", ""))
@@ -166,11 +190,11 @@ def show_parts_frame(parent, current_user):
             dialog.destroy()
             refresh_table(search_entry.get())
 
-        btn_row = ttk.Frame(form)
-        btn_row.grid(row=3, column=0, columnspan=2, pady=(20, 0))
+        btn_row = ttk.Frame(form, style="Surface.TFrame")
+        btn_row.pack(fill="x", pady=(20, 0))
 
-        ttk.Button(btn_row, text="Save", command=save_part).pack(side="left", padx=5)
-        ttk.Button(btn_row, text="Cancel", command=dialog.destroy).pack(side="left", padx=5)
+        ttk.Button(btn_row, text="Cancel", style="Secondary.TButton", command=dialog.destroy).pack(side="left")
+        ttk.Button(btn_row, text="Save Part", style="Primary.TButton", command=save_part).pack(side="right")
 
     def on_add():
         open_part_dialog()
@@ -205,26 +229,12 @@ def show_parts_frame(parent, current_user):
         refresh_table(search_entry.get())
 
     role = current_user.get("role", "")
-    btn_bar = ttk.Frame(frame)
-    btn_bar.pack(fill="x", pady=(10, 0))
-
     if role in ["Admin", "Staff"]:
-        ttk.Button(btn_bar, text="Add New Part", command=on_add).pack(side="left", padx=5)
-        ttk.Button(btn_bar, text="Edit Part", command=on_edit).pack(side="left", padx=5)
+        ttk.Button(btn_bar, text="Add New Part", style="Primary.TButton", command=on_add).pack(side="left", padx=(0, 6))
+        ttk.Button(btn_bar, text="Edit Part", style="Secondary.TButton", command=on_edit).pack(side="left", padx=(0, 6))
 
     if role == "Admin":
-        ttk.Button(btn_bar, text="Delete Part", command=on_delete).pack(side="left", padx=5)
+        ttk.Button(btn_bar, text="Delete Part", style="Secondary.TButton", command=on_delete).pack(side="left")
 
-    # Initial load
     refresh_table()
-
-    # Warn if any part is low in stock (FR-35)
-    parts = storage.load_parts()
-    low_stock = [p for p in parts if int(p.get("quantity", 0)) <= LOW_STOCK_THRESHOLD]
-    if low_stock:
-        names = ", ".join([f"{p['name']} ({p['quantity']})" for p in low_stock[:3]])
-        if len(low_stock) > 3:
-            names += f", and {len(low_stock) - 3} more"
-        messagebox.showwarning("Low Stock Warning", f"The following parts have low stock (<= {LOW_STOCK_THRESHOLD}):\n{names}")
-
-    return frame
+    return card

@@ -1,4 +1,4 @@
-# Dashboard and main menu navigation module with strict role checks
+# Dashboard and main menu navigation module with modern slate sidebar and active tab highlights
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -11,193 +11,285 @@ import gui.reports as reports_gui
 import gui.users as users_gui
 import gui.customer_portal as customer_portal_gui
 import gui.incoming_requests as incoming_requests_gui
+import gui.theme as theme
 
 
 def show_dashboard_window(root, current_user, on_logout):
     """
-    Renders main dashboard with role-based navigation and content area.
-    Strictly isolates Customer, Technician, Staff, and Admin views (FR-73).
+    Renders main dashboard with modern slate sidebar, top header bar,
+    and active menu highlights (FR-73).
     """
     for widget in root.winfo_children():
         widget.destroy()
 
     root.title("Computer & Laptop Repair Service System")
-    root.geometry("1020x660")
-    root.minsize(860, 540)
+    theme.center_window(root, 1100, 700, 960, 600)
     root.resizable(True, True)
 
     role = current_user.get("role", "Customer")
     full_name = current_user.get("full_name", current_user.get("username", "User"))
 
-    # Top App Bar
-    app_bar = ttk.Frame(root, padding=(15, 10))
-    app_bar.pack(fill="x", side="top")
+    # Main layout container
+    main_layout = ttk.Frame(root)
+    main_layout.pack(fill="both", expand=True)
 
-    system_title = ttk.Label(
-        app_bar,
-        text="Repair Service System",
-        font=("Arial", 14, "bold")
+    # 1. Left Sidebar Navigation
+    sidebar = ttk.Frame(main_layout, style="Sidebar.TFrame", padding=(12, 16))
+    sidebar.pack(side="left", fill="y", expand=False)
+    sidebar.configure(width=220)
+    sidebar.pack_propagate(False)
+
+    # Brand Title
+    ttk.Label(
+        sidebar,
+        text="TechRepair",
+        style="Brand.TLabel"
+    ).pack(anchor="w", padx=6, pady=(4, 2))
+
+    ttk.Label(
+        sidebar,
+        text="Service Dashboard",
+        background=theme.BG_SIDEBAR,
+        foreground="#94A3B8",
+        font=theme.FONT_MUTED
+    ).pack(anchor="w", padx=6, pady=(0, 16))
+
+    ttk.Separator(sidebar).pack(fill="x", padx=6, pady=(0, 12))
+
+    ttk.Label(
+        sidebar,
+        text="NAVIGATION",
+        style="SidebarHeader.TLabel"
+    ).pack(anchor="w", padx=8, pady=(0, 8))
+
+    # 2. Right Body Container (Top Header + Content Area)
+    right_container = ttk.Frame(main_layout)
+    right_container.pack(side="right", fill="both", expand=True)
+
+    # Top Header Bar (White Surface)
+    top_header = ttk.Frame(right_container, style="Surface.TFrame", padding=(20, 14))
+    top_header.pack(side="top", fill="x")
+
+    page_title_label = ttk.Label(
+        top_header,
+        text="Dashboard",
+        style="Surface.TLabel",
+        font=theme.FONT_SECTION
     )
-    system_title.pack(side="left")
+    page_title_label.pack(side="left")
 
-    user_info = ttk.Label(
-        app_bar,
-        text=f"Logged in as: {full_name} ({role})",
-        font=("Arial", 10)
+    user_info_label = ttk.Label(
+        top_header,
+        text=f"{full_name}  •  {role}",
+        style="SurfaceMuted.TLabel",
+        font=theme.FONT_BODY_BOLD
     )
-    user_info.pack(side="right")
+    user_info_label.pack(side="right")
 
-    # Separator
-    ttk.Separator(root, orient="horizontal").pack(fill="x")
+    # Thin border below header
+    ttk.Separator(right_container, orient="horizontal").pack(fill="x")
 
-    # Main layout: Left sidebar for navigation, Right frame for screen content
-    main_body = ttk.Frame(root)
-    main_body.pack(fill="both", expand=True)
-
-    sidebar = ttk.Frame(main_body, width=190, padding=10)
-    sidebar.pack(side="left", fill="y")
-
-    ttk.Separator(main_body, orient="vertical").pack(side="left", fill="y")
-
-    content_area = ttk.Frame(main_body, padding=10)
-    content_area.pack(side="right", fill="both", expand=True)
+    # Content Area
+    content_area = ttk.Frame(right_container, padding=16)
+    content_area.pack(side="bottom", fill="both", expand=True)
 
     current_screen_holder = {"frame": None}
+    menu_buttons = {}
+    active_key_holder = {"key": None}
 
     def clear_content_area():
         if current_screen_holder["frame"] is not None:
             current_screen_holder["frame"].destroy()
             current_screen_holder["frame"] = None
 
-    # Customer screens
-    def switch_to_new_request():
+    def set_active_screen(key, title, render_fn):
+        """Highlights the active sidebar button, updates title, and swaps view."""
+        clear_content_area()
+        page_title_label.configure(text=title)
+
+        # Update button styles
+        for k, btn in menu_buttons.items():
+            if k == key:
+                btn.configure(style="SidebarActive.TButton")
+            else:
+                btn.configure(style="Sidebar.TButton")
+        active_key_holder["key"] = key
+
+        # Render screen inside content_area
+        current_screen_holder["frame"] = render_fn()
+
+    # Customer Screen Wrappers
+    def show_new_request():
         if role != "Customer":
             messagebox.showerror("Access Denied", "Only customers can submit new online requests.")
             return
-        clear_content_area()
-        current_screen_holder["frame"] = customer_portal_gui.show_new_request_frame(
-            content_area,
-            current_user,
-            on_success_callback=switch_to_my_requests
+        set_active_screen(
+            "new_request",
+            "Submit New Repair Request",
+            lambda: customer_portal_gui.show_new_request_frame(
+                content_area,
+                current_user,
+                on_success_callback=show_my_requests
+            )
         )
 
-    def switch_to_my_requests():
+    def show_my_requests():
         if role != "Customer":
-            messagebox.showerror("Access Denied", "Only customers can view the customer request portal.")
+            messagebox.showerror("Access Denied", "Only customers can view this portal.")
             return
-        clear_content_area()
-        current_screen_holder["frame"] = customer_portal_gui.show_my_requests_frame(content_area, current_user)
+        set_active_screen(
+            "my_requests",
+            "My Repair Requests",
+            lambda: customer_portal_gui.show_my_requests_frame(content_area, current_user)
+        )
 
-    def switch_to_my_receipts():
+    def show_my_receipts():
         if role != "Customer":
-            messagebox.showerror("Access Denied", "Only customers can view this receipts portal.")
+            messagebox.showerror("Access Denied", "Only customers can view this portal.")
             return
-        clear_content_area()
-        current_screen_holder["frame"] = customer_portal_gui.show_my_receipts_frame(content_area, current_user)
+        set_active_screen(
+            "my_receipts",
+            "My Receipts & Invoices",
+            lambda: customer_portal_gui.show_my_receipts_frame(content_area, current_user)
+        )
 
-    def switch_to_profile():
-        clear_content_area()
-        current_screen_holder["frame"] = customer_portal_gui.show_profile_frame(content_area, current_user)
+    def show_profile():
+        set_active_screen(
+            "profile",
+            "Profile & Account Settings",
+            lambda: customer_portal_gui.show_profile_frame(content_area, current_user)
+        )
 
-    # Staff / Admin screens
-    def switch_to_incoming_requests():
+    # Staff / Admin Screen Wrappers
+    def show_incoming():
         if role not in ["Admin", "Staff"]:
-            messagebox.showerror("Access Denied", "You do not have permission to view incoming requests.")
+            messagebox.showerror("Access Denied", "Access restricted to Staff and Admin.")
             return
-        clear_content_area()
-        current_screen_holder["frame"] = incoming_requests_gui.show_incoming_requests_frame(content_area, current_user)
+        set_active_screen(
+            "incoming",
+            "Incoming Online Requests",
+            lambda: incoming_requests_gui.show_incoming_requests_frame(content_area, current_user)
+        )
 
-    def switch_to_jobs():
+    def show_jobs():
         if role not in ["Admin", "Staff", "Technician"]:
-            messagebox.showerror("Access Denied", "You do not have permission to view this section.")
+            messagebox.showerror("Access Denied", "Access restricted.")
             return
-        clear_content_area()
-        current_screen_holder["frame"] = jobs_gui.show_jobs_frame(content_area, current_user)
+        title = "My Assigned Jobs" if role == "Technician" else "Job Orders & Repair Tracking"
+        set_active_screen(
+            "jobs",
+            title,
+            lambda: jobs_gui.show_jobs_frame(content_area, current_user)
+        )
 
-    def switch_to_customers():
+    def show_customers():
         if role not in ["Admin", "Staff"]:
-            messagebox.showerror("Access Denied", "You do not have permission to view customer records.")
+            messagebox.showerror("Access Denied", "Access restricted to Staff and Admin.")
             return
-        clear_content_area()
-        current_screen_holder["frame"] = customers_gui.show_customers_frame(content_area, current_user)
+        set_active_screen(
+            "customers",
+            "Customer Management",
+            lambda: customers_gui.show_customers_frame(content_area, current_user)
+        )
 
-    def switch_to_services():
-        if role != "Admin":
-            messagebox.showerror("Access Denied", "Only administrators can manage the service catalog.")
-            return
-        clear_content_area()
-        current_screen_holder["frame"] = services_gui.show_services_frame(content_area, current_user)
-
-    def switch_to_billing():
+    def show_billing():
         if role not in ["Admin", "Staff"]:
-            messagebox.showerror("Access Denied", "You do not have permission to access billing.")
+            messagebox.showerror("Access Denied", "Access restricted to Staff and Admin.")
             return
-        clear_content_area()
-        current_screen_holder["frame"] = billing_gui.show_billing_frame(content_area, current_user)
+        set_active_screen(
+            "billing",
+            "Billing & Payment Management",
+            lambda: billing_gui.show_billing_frame(content_area, current_user)
+        )
 
-    def switch_to_parts():
+    def show_parts():
         if role not in ["Admin", "Staff", "Technician"]:
-            messagebox.showerror("Access Denied", "You do not have permission to view parts inventory.")
+            messagebox.showerror("Access Denied", "Access restricted.")
             return
-        clear_content_area()
-        current_screen_holder["frame"] = parts_gui.show_parts_frame(content_area, current_user)
+        set_active_screen(
+            "parts",
+            "Parts & Inventory Management",
+            lambda: parts_gui.show_parts_frame(content_area, current_user)
+        )
 
-    def switch_to_reports():
-        if role not in ["Admin", "Staff"]:
-            messagebox.showerror("Access Denied", "You do not have permission to view system reports.")
-            return
-        clear_content_area()
-        current_screen_holder["frame"] = reports_gui.show_reports_frame(content_area, current_user)
-
-    def switch_to_users():
+    def show_services():
         if role != "Admin":
-            messagebox.showerror("Access Denied", "Only administrators can manage user accounts.")
+            messagebox.showerror("Access Denied", "Access restricted to Administrator.")
             return
-        clear_content_area()
-        current_screen_holder["frame"] = users_gui.show_users_frame(content_area, current_user)
+        set_active_screen(
+            "services",
+            "Service Catalog Management",
+            lambda: services_gui.show_services_frame(content_area, current_user)
+        )
+
+    def show_reports():
+        if role not in ["Admin", "Staff"]:
+            messagebox.showerror("Access Denied", "Access restricted to Staff and Admin.")
+            return
+        set_active_screen(
+            "reports",
+            "Reports & System Analytics",
+            lambda: reports_gui.show_reports_frame(content_area, current_user)
+        )
+
+    def show_users():
+        if role != "Admin":
+            messagebox.showerror("Access Denied", "Access restricted to Administrator.")
+            return
+        set_active_screen(
+            "users",
+            "User Accounts Management",
+            lambda: users_gui.show_users_frame(content_area, current_user)
+        )
 
     def perform_logout():
-        confirm = messagebox.askyesno("Confirm Logout", "Are you sure you want to log out?")
+        confirm = messagebox.askyesno("Confirm Logout", "Are you sure you want to sign out?")
         if confirm:
             on_logout()
 
-    # Sidebar Navigation Buttons based strictly on Role
-    ttk.Label(sidebar, text="MAIN MENU", font=("Arial", 10, "bold")).pack(anchor="w", pady=(5, 10))
+    # Create Sidebar Buttons by Role
+    def add_menu_btn(key, text, command):
+        btn = ttk.Button(sidebar, text=text, style="Sidebar.TButton", command=command)
+        btn.pack(fill="x", pady=2)
+        menu_buttons[key] = btn
+        return btn
 
     if role == "Customer":
-        ttk.Button(sidebar, text="New Request", command=switch_to_new_request).pack(fill="x", pady=3)
-        ttk.Button(sidebar, text="My Requests", command=switch_to_my_requests).pack(fill="x", pady=3)
-        ttk.Button(sidebar, text="My Receipts", command=switch_to_my_receipts).pack(fill="x", pady=3)
-        ttk.Button(sidebar, text="Profile", command=switch_to_profile).pack(fill="x", pady=3)
+        add_menu_btn("new_request", "New Request", show_new_request)
+        add_menu_btn("my_requests", "My Requests", show_my_requests)
+        add_menu_btn("my_receipts", "My Receipts", show_my_receipts)
+        add_menu_btn("profile", "Profile", show_profile)
 
     elif role in ["Admin", "Staff"]:
-        ttk.Button(sidebar, text="Incoming Requests", command=switch_to_incoming_requests).pack(fill="x", pady=3)
-        ttk.Button(sidebar, text="Job Orders", command=switch_to_jobs).pack(fill="x", pady=3)
-        ttk.Button(sidebar, text="Customers", command=switch_to_customers).pack(fill="x", pady=3)
-        ttk.Button(sidebar, text="Billing & Payments", command=switch_to_billing).pack(fill="x", pady=3)
-        ttk.Button(sidebar, text="Parts & Inventory", command=switch_to_parts).pack(fill="x", pady=3)
+        add_menu_btn("incoming", "Incoming Requests", show_incoming)
+        add_menu_btn("jobs", "Job Orders", show_jobs)
+        add_menu_btn("customers", "Customers", show_customers)
+        add_menu_btn("billing", "Billing & Payments", show_billing)
+        add_menu_btn("parts", "Parts Inventory", show_parts)
 
         if role == "Admin":
-            ttk.Button(sidebar, text="Service Catalog", command=switch_to_services).pack(fill="x", pady=3)
-            ttk.Button(sidebar, text="Reports & Analytics", command=switch_to_reports).pack(fill="x", pady=3)
-            ttk.Button(sidebar, text="User Accounts", command=switch_to_users).pack(fill="x", pady=3)
+            add_menu_btn("services", "Service Catalog", show_services)
+            add_menu_btn("reports", "Reports & Analytics", show_reports)
+            add_menu_btn("users", "User Accounts", show_users)
         else:
-            ttk.Button(sidebar, text="Reports & Analytics", command=switch_to_reports).pack(fill="x", pady=3)
+            add_menu_btn("reports", "Reports & Analytics", show_reports)
 
     elif role == "Technician":
-        ttk.Button(sidebar, text="My Jobs", command=switch_to_jobs).pack(fill="x", pady=3)
-        ttk.Button(sidebar, text="Parts Inventory", command=switch_to_parts).pack(fill="x", pady=3)
+        add_menu_btn("jobs", "My Assigned Jobs", show_jobs)
+        add_menu_btn("parts", "Parts Inventory", show_parts)
 
-    # Spacer
-    ttk.Frame(sidebar).pack(fill="both", expand=True)
+    # Spacer pushing Log Out to bottom
+    ttk.Frame(sidebar, style="Sidebar.TFrame").pack(fill="both", expand=True)
 
-    # Logout button at bottom of sidebar
-    ttk.Button(sidebar, text="Log Out", command=perform_logout).pack(fill="x", side="bottom", pady=5)
+    # Bottom Logout Button
+    ttk.Separator(sidebar).pack(fill="x", padx=6, pady=(0, 8))
+    btn_logout = ttk.Button(sidebar, text="Sign Out", style="Sidebar.TButton", command=perform_logout)
+    btn_logout.pack(fill="x", side="bottom", pady=(0, 4))
 
-    # Default initial screen view based on role
+    # Initial Screen Launch
     if role == "Customer":
-        switch_to_my_requests()
+        show_my_requests()
     elif role in ["Admin", "Staff"]:
-        switch_to_incoming_requests()
+        show_incoming()
     else:
-        switch_to_jobs()
+        show_jobs()

@@ -1,4 +1,4 @@
-# Reports, analytics dashboard, backup and export module
+# Reports, analytics dashboard, backup and export module with modern summary cards
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -7,23 +7,16 @@ import os
 import csv
 import storage
 import models
+import gui.theme as theme
 
 
 def show_reports_frame(parent, current_user):
     """
-    Renders reports dashboard: status counts, pending jobs, sales breakdown, and data backup.
+    Renders reports dashboard with modern summary cards, status grid,
+    pending jobs table, and export utilities.
     """
-    frame = ttk.Frame(parent, padding=10)
+    frame = ttk.Frame(parent)
     frame.pack(fill="both", expand=True)
-
-    header_frame = ttk.Frame(frame)
-    header_frame.pack(fill="x", pady=(0, 10))
-
-    ttk.Label(
-        header_frame,
-        text="Reports & System Dashboard",
-        font=("Arial", 14, "bold")
-    ).pack(side="left")
 
     # Data loading and computations
     jobs = storage.load_jobs()
@@ -31,7 +24,6 @@ def show_reports_frame(parent, current_user):
     customers = storage.load_customers()
     cust_map = {c["customer_id"]: c.get("name", "Unknown") for c in customers}
 
-    # Status counts (FR-43)
     status_counts = {s: 0 for s in models.STATUS_LIST}
     for j in jobs:
         st = j.get("status", "Received")
@@ -43,7 +35,6 @@ def show_reports_frame(parent, current_user):
     total_jobs = len(jobs)
     pending_jobs = [j for j in jobs if j.get("status") in models.ACTIVE_STATUSES]
 
-    # Sales calculations (FR-44)
     today_str = datetime.now().strftime("%Y-%m-%d")
     month_str = datetime.now().strftime("%Y-%m")
 
@@ -68,88 +59,96 @@ def show_reports_frame(parent, current_user):
         else:
             method_totals[method] = amt
 
-    # Top Metrics Cards Row
-    metrics_frame = ttk.LabelFrame(frame, text="Key Metrics Overview", padding=10)
-    metrics_frame.pack(fill="x", pady=(0, 10))
+    # 1. Top Metrics Cards Row
+    metrics_row = ttk.Frame(frame)
+    metrics_row.pack(fill="x", pady=(0, 14))
 
-    col0 = ttk.Frame(metrics_frame)
-    col0.grid(row=0, column=0, padx=15, sticky="w")
-    ttk.Label(col0, text="Total Jobs:", font=("Arial", 9)).pack(anchor="w")
-    ttk.Label(col0, text=str(total_jobs), font=("Arial", 14, "bold")).pack(anchor="w")
+    def make_kpi_card(parent_frame, title_text, value_text, value_color=theme.TEXT_MAIN):
+        c = ttk.Frame(parent_frame, style="Card.TFrame", padding=(16, 14))
+        c.pack(side="left", fill="both", expand=True, padx=4)
 
-    col1 = ttk.Frame(metrics_frame)
-    col1.grid(row=0, column=1, padx=15, sticky="w")
-    ttk.Label(col1, text="Active / Pending:", font=("Arial", 9)).pack(anchor="w")
-    ttk.Label(col1, text=str(len(pending_jobs)), font=("Arial", 14, "bold"), foreground="orange").pack(anchor="w")
+        ttk.Label(c, text=title_text.upper(), style="SurfaceMuted.TLabel", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+        val_lbl = ttk.Label(c, text=value_text, style="Surface.TLabel", font=("Segoe UI", 16, "bold"))
+        val_lbl.pack(anchor="w", pady=(4, 0))
+        if value_color != theme.TEXT_MAIN:
+            val_lbl.configure(foreground=value_color)
+        return c
 
-    col2 = ttk.Frame(metrics_frame)
-    col2.grid(row=0, column=2, padx=15, sticky="w")
-    ttk.Label(col2, text="Today's Sales:", font=("Arial", 9)).pack(anchor="w")
-    ttk.Label(col2, text=f"PHP {today_sales:,.2f}", font=("Arial", 14, "bold")).pack(anchor="w")
+    make_kpi_card(metrics_row, "Total Jobs", str(total_jobs))
+    make_kpi_card(metrics_row, "Active / Pending", str(len(pending_jobs)), theme.COLOR_WARNING)
+    make_kpi_card(metrics_row, "Today's Revenue", f"PHP {today_sales:,.2f}")
+    make_kpi_card(metrics_row, "This Month", f"PHP {month_sales:,.2f}")
+    make_kpi_card(metrics_row, "Total Revenue", f"PHP {total_revenue:,.2f}", theme.COLOR_SUCCESS)
 
-    col3 = ttk.Frame(metrics_frame)
-    col3.grid(row=0, column=3, padx=15, sticky="w")
-    ttk.Label(col3, text="This Month's Sales:", font=("Arial", 9)).pack(anchor="w")
-    ttk.Label(col3, text=f"PHP {month_sales:,.2f}", font=("Arial", 14, "bold")).pack(anchor="w")
+    # 2. Status Breakdown Card
+    stat_card = ttk.Frame(frame, style="Card.TFrame", padding=(16, 12))
+    stat_card.pack(fill="x", pady=(0, 14))
 
-    col4 = ttk.Frame(metrics_frame)
-    col4.grid(row=0, column=4, padx=15, sticky="w")
-    ttk.Label(col4, text="Total Revenue:", font=("Arial", 9)).pack(anchor="w")
-    ttk.Label(col4, text=f"PHP {total_revenue:,.2f}", font=("Arial", 14, "bold"), foreground="green").pack(anchor="w")
+    ttk.Label(stat_card, text="STATUS BREAKDOWN", style="SurfaceMuted.TLabel", font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 8))
 
-    # Status Breakdown summary line
-    stat_box = ttk.LabelFrame(frame, text="Jobs by Status Breakdown", padding=10)
-    stat_box.pack(fill="x", pady=(0, 10))
+    stat_grid = ttk.Frame(stat_card, style="Surface.TFrame")
+    stat_grid.pack(fill="x")
 
-    stat_line = ttk.Frame(stat_box)
-    stat_line.pack(fill="x")
     for idx, (st, count) in enumerate(status_counts.items()):
-        ttk.Label(stat_line, text=f"{st}: {count}", font=("Arial", 9, "bold")).grid(row=idx // 4, column=idx % 4, padx=12, pady=3, sticky="w")
+        badge = ttk.Frame(stat_grid, style="Surface.TFrame")
+        badge.grid(row=idx // 4, column=idx % 4, sticky="w", padx=12, pady=3)
 
-    # Pending Jobs Table (FR-45)
-    pending_box = ttk.LabelFrame(frame, text=f"Pending Jobs List ({len(pending_jobs)} items)", padding=10)
-    pending_box.pack(fill="both", expand=True, pady=(0, 10))
+        color = theme.STATUS_COLORS.get(st, theme.TEXT_MAIN)
+        ttk.Label(badge, text=f"• {st}:", style="Surface.TLabel", font=theme.FONT_BODY).pack(side="left")
+        ttk.Label(badge, text=f" {count}", style="Surface.TLabel", font=theme.FONT_BODY_BOLD, foreground=color).pack(side="left")
+
+    # 3. Pending Jobs Table Card
+    table_card = ttk.Frame(frame, style="Card.TFrame", padding=16)
+    table_card.pack(fill="both", expand=True, pady=(0, 14))
+
+    ttk.Label(table_card, text=f"PENDING JOBS ({len(pending_jobs)})", style="SurfaceMuted.TLabel", font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(0, 8))
 
     columns = ("job_id", "customer", "device", "priority", "status", "date_received", "est_completion")
-    tree = ttk.Treeview(pending_box, columns=columns, show="headings", height=5)
+    tree = ttk.Treeview(table_card, columns=columns, show="headings", height=5)
 
     tree.heading("job_id", text="Job ID")
-    tree.heading("customer", text="Customer")
-    tree.heading("device", text="Device")
+    tree.heading("customer", text="Customer Name")
+    tree.heading("device", text="Device Description")
     tree.heading("priority", text="Priority")
-    tree.heading("status", text="Status")
+    tree.heading("status", text="Current Status")
     tree.heading("date_received", text="Date Received")
     tree.heading("est_completion", text="Est. Completion")
 
-    tree.column("job_id", width=80, anchor="center")
-    tree.column("customer", width=150)
-    tree.column("device", width=160)
-    tree.column("priority", width=80, anchor="center")
-    tree.column("status", width=110, anchor="center")
-    tree.column("date_received", width=120, anchor="center")
-    tree.column("est_completion", width=110, anchor="center")
+    tree.column("job_id", width=95, anchor="center")
+    tree.column("customer", width=160)
+    tree.column("device", width=180)
+    tree.column("priority", width=85, anchor="center")
+    tree.column("status", width=130, anchor="center")
+    tree.column("date_received", width=130, anchor="center")
+    tree.column("est_completion", width=120, anchor="center")
 
-    scroll_y = ttk.Scrollbar(pending_box, orient="vertical", command=tree.yview)
+    theme.setup_treeview_tags(tree)
+
+    scroll_y = ttk.Scrollbar(table_card, orient="vertical", command=tree.yview)
     tree.configure(yscrollcommand=scroll_y.set)
     tree.pack(side="left", fill="both", expand=True)
     scroll_y.pack(side="right", fill="y")
 
-    for j in pending_jobs:
+    for idx, j in enumerate(pending_jobs):
         jid = j.get("job_id", "")
         cid = j.get("customer_id", "")
         cname = cust_map.get(cid, cid)
         dev = f"{j.get('brand', '')} {j.get('model', '')}".strip() or j.get("device_type", "")
+        st = j.get("status", "")
+
+        zebra_tag = "even" if idx % 2 == 0 else "odd"
+        status_tag = f"status_{st}"
         tree.insert("", "end", values=(
             jid,
             cname,
             dev,
             j.get("priority", ""),
-            j.get("status", ""),
-            j.get("date_received", ""),
+            st,
+            j.get("date_received", "") or "Pending Drop-off",
             j.get("est_completion", "")
-        ))
+        ), tags=(zebra_tag, status_tag))
 
-    # Export Functions (FR-46)
+    # 4. Export Functions & Actions Bar
     def export_sales_csv():
         try:
             export_dir = os.path.join(storage.BASE_DIR, "exports")
@@ -229,14 +228,13 @@ def show_reports_frame(parent, current_user):
         if bpath:
             messagebox.showinfo("Backup Completed", f"All data files successfully backed up to:\n{bpath}")
 
-    # Actions Bar (FR-46, FR-50)
     btn_bar = ttk.Frame(frame)
-    btn_bar.pack(fill="x", pady=(5, 0))
+    btn_bar.pack(fill="x")
 
-    ttk.Button(btn_bar, text="Export Sales Report (.csv)", command=export_sales_csv).pack(side="left", padx=5)
-    ttk.Button(btn_bar, text="Export Summary Report (.txt)", command=export_summary_txt).pack(side="left", padx=5)
+    ttk.Button(btn_bar, text="Export Sales Report (.csv)", style="Primary.TButton", command=export_sales_csv).pack(side="left", padx=(0, 8))
+    ttk.Button(btn_bar, text="Export Summary Report (.txt)", style="Secondary.TButton", command=export_summary_txt).pack(side="left", padx=(0, 8))
 
     if current_user.get("role") == "Admin":
-        ttk.Button(btn_bar, text="Backup Data Files", command=perform_backup).pack(side="left", padx=5)
+        ttk.Button(btn_bar, text="Backup Data Files", style="Secondary.TButton", command=perform_backup).pack(side="left")
 
     return frame

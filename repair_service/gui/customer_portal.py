@@ -1,4 +1,4 @@
-# Customer Portal module for registered clients
+# Customer Portal module with modern dashboard card styling
 
 import tkinter as tk
 from tkinter import ttk, messagebox
@@ -7,50 +7,61 @@ import os
 import storage
 import models
 import validators
+import gui.theme as theme
 
 
 def show_new_request_frame(parent, current_user, on_success_callback=None):
     """
-    Form for a customer to submit a new online repair request.
+    Form for a customer to submit a new online repair request inside a modern card.
     """
-    frame = ttk.Frame(parent, padding=15)
-    frame.pack(fill="both", expand=True)
+    card = ttk.Frame(parent, style="Card.TFrame", padding=20)
+    card.pack(fill="both", expand=True)
 
     ttk.Label(
-        frame,
+        card,
         text="Submit New Repair Request",
-        font=("Arial", 14, "bold")
-    ).pack(anchor="w", pady=(0, 10))
+        style="Surface.TLabel",
+        font=theme.FONT_SECTION
+    ).pack(anchor="w")
+
+    ttk.Label(
+        card,
+        text="Fill in your device details. Once submitted, bring your device to our shop for intake inspection.",
+        style="SurfaceMuted.TLabel"
+    ).pack(anchor="w", pady=(2, 14))
 
     # Form card container
-    form_box = ttk.LabelFrame(frame, text="Device & Problem Details", padding=15)
+    form_box = ttk.LabelFrame(card, text="Device & Problem Details", padding=16)
     form_box.pack(fill="both", expand=True)
 
+    grid = ttk.Frame(form_box, style="Surface.TFrame")
+    grid.pack(fill="x", pady=(0, 10))
+
     # Device Type
-    ttk.Label(form_box, text="Device Type:").grid(row=0, column=0, sticky="w", pady=6)
-    dev_type_combo = ttk.Combobox(form_box, values=["Laptop", "Desktop", "All-in-One"], state="readonly", width=25)
-    dev_type_combo.grid(row=0, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid, text="Device Type *:", style="Surface.TLabel").grid(row=0, column=0, sticky="w", pady=6)
+    dev_type_combo = ttk.Combobox(grid, values=["Laptop", "Desktop", "All-in-One"], state="readonly", width=26)
+    dev_type_combo.grid(row=0, column=1, sticky="w", pady=6, padx=(12, 0))
     dev_type_combo.current(0)
 
     # Brand
-    ttk.Label(form_box, text="Brand:").grid(row=1, column=0, sticky="w", pady=6)
-    brand_entry = ttk.Entry(form_box, width=27)
-    brand_entry.grid(row=1, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid, text="Brand *:", style="Surface.TLabel").grid(row=1, column=0, sticky="w", pady=6)
+    brand_entry = ttk.Entry(grid, width=28)
+    brand_entry.grid(row=1, column=1, sticky="w", pady=6, padx=(12, 0))
 
     # Model
-    ttk.Label(form_box, text="Model:").grid(row=2, column=0, sticky="w", pady=6)
-    model_entry = ttk.Entry(form_box, width=27)
-    model_entry.grid(row=2, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid, text="Model *:", style="Surface.TLabel").grid(row=2, column=0, sticky="w", pady=6)
+    model_entry = ttk.Entry(grid, width=28)
+    model_entry.grid(row=2, column=1, sticky="w", pady=6, padx=(12, 0))
 
     # Serial Number (optional)
-    ttk.Label(form_box, text="Serial Number (Optional):").grid(row=3, column=0, sticky="w", pady=6)
-    serial_entry = ttk.Entry(form_box, width=27)
-    serial_entry.grid(row=3, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid, text="Serial Number (Optional):", style="Surface.TLabel").grid(row=3, column=0, sticky="w", pady=6)
+    serial_entry = ttk.Entry(grid, width=28)
+    serial_entry.grid(row=3, column=1, sticky="w", pady=6, padx=(12, 0))
 
     # Accessories to bring
-    ttk.Label(form_box, text="Accessories to bring:").grid(row=4, column=0, sticky="nw", pady=6)
-    acc_frame = ttk.Frame(form_box)
-    acc_frame.grid(row=4, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid, text="Accessories to bring:", style="Surface.TLabel").grid(row=4, column=0, sticky="nw", pady=6)
+    acc_frame = ttk.Frame(grid, style="Surface.TFrame")
+    acc_frame.grid(row=4, column=1, sticky="w", pady=6, padx=(12, 0))
 
     charger_var = tk.BooleanVar()
     bag_var = tk.BooleanVar()
@@ -63,9 +74,9 @@ def show_new_request_frame(parent, current_user, on_success_callback=None):
     ttk.Checkbutton(acc_frame, text="Power Cable", variable=cable_var).pack(anchor="w")
 
     # Problem description
-    ttk.Label(form_box, text="Problem Description:").grid(row=5, column=0, sticky="nw", pady=6)
-    prob_text = tk.Text(form_box, height=5, width=45, font=("Arial", 9))
-    prob_text.grid(row=5, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid, text="Problem Description *:", style="Surface.TLabel").grid(row=5, column=0, sticky="nw", pady=6)
+    prob_text = tk.Text(grid, height=5, width=48, font=theme.FONT_BODY)
+    prob_text.grid(row=5, column=1, sticky="w", pady=6, padx=(12, 0))
 
     def submit_request():
         dev_type = dev_type_combo.get().strip()
@@ -138,46 +149,45 @@ def show_new_request_frame(parent, current_user, on_success_callback=None):
         if on_success_callback:
             on_success_callback()
 
-    btn_row = ttk.Frame(form_box)
-    btn_row.grid(row=6, column=0, columnspan=2, pady=(15, 0))
+    btn_row = ttk.Frame(card, style="Surface.TFrame")
+    btn_row.pack(fill="x", pady=(14, 0))
 
-    ttk.Button(btn_row, text="Submit Request", command=submit_request).pack(side="left", padx=5)
+    ttk.Button(btn_row, text="Submit Request", style="Primary.TButton", command=submit_request).pack(side="left")
 
-    return frame
+    return card
 
 
 def show_my_requests_frame(parent, current_user):
     """
-    Shows a table of the customer's own jobs, with details and cancellation options.
+    Shows a styled table of the customer's own jobs, with details and cancellation options.
     """
-    frame = ttk.Frame(parent, padding=10)
-    frame.pack(fill="both", expand=True)
+    card = ttk.Frame(parent, style="Card.TFrame", padding=16)
+    card.pack(fill="both", expand=True)
 
-    header_frame = ttk.Frame(frame)
-    header_frame.pack(fill="x", pady=(0, 10))
+    toolbar = ttk.Frame(card, style="Surface.TFrame")
+    toolbar.pack(fill="x", pady=(0, 12))
 
-    ttk.Label(
-        header_frame,
-        text="My Repair Requests",
-        font=("Arial", 14, "bold")
-    ).pack(side="left")
+    btn_bar = ttk.Frame(toolbar, style="Surface.TFrame")
+    btn_bar.pack(side="left")
 
-    # Table with Treeview
-    table_frame = ttk.Frame(frame)
+    # Table Container
+    table_frame = ttk.Frame(card, style="Surface.TFrame")
     table_frame.pack(fill="both", expand=True)
 
     columns = ("job_id", "device", "date_submitted", "status")
     tree = ttk.Treeview(table_frame, columns=columns, show="headings", selectmode="browse")
 
     tree.heading("job_id", text="Job ID")
-    tree.heading("device", text="Device")
+    tree.heading("device", text="Device Description")
     tree.heading("date_submitted", text="Date Submitted")
-    tree.heading("status", text="Status")
+    tree.heading("status", text="Current Status")
 
-    tree.column("job_id", width=100, anchor="center")
-    tree.column("device", width=220)
+    tree.column("job_id", width=110, anchor="center")
+    tree.column("device", width=260)
     tree.column("date_submitted", width=160, anchor="center")
-    tree.column("status", width=150, anchor="center")
+    tree.column("status", width=160, anchor="center")
+
+    theme.setup_treeview_tags(tree)
 
     scrollbar_y = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
     tree.configure(yscrollcommand=scrollbar_y.set)
@@ -186,20 +196,34 @@ def show_my_requests_frame(parent, current_user):
 
     my_cust_id = current_user.get("customer_id", "")
 
+    empty_label = ttk.Label(
+        card,
+        text="You have no active repair requests. Click 'New Request' to get started.",
+        style="SurfaceMuted.TLabel",
+        font=theme.FONT_BODY
+    )
+
     def refresh_table():
         for row in tree.get_children():
             tree.delete(row)
 
         jobs = storage.load_jobs()
-        # Strictly customer's own jobs
         my_jobs = [j for j in jobs if j.get("customer_id") == my_cust_id]
 
-        for j in my_jobs:
+        for idx, j in enumerate(my_jobs):
             jid = j.get("job_id", "")
             dev = f"{j.get('brand', '')} {j.get('model', '')}".strip() or j.get("device_type", "")
             d_sub = j.get("date_submitted", j.get("date_received", ""))
             stat = j.get("status", "")
-            tree.insert("", "end", values=(jid, dev, d_sub, stat))
+
+            zebra_tag = "even" if idx % 2 == 0 else "odd"
+            status_tag = f"status_{stat}"
+            tree.insert("", "end", values=(jid, dev, d_sub, stat), tags=(zebra_tag, status_tag))
+
+        if len(my_jobs) == 0:
+            empty_label.place(relx=0.5, rely=0.5, anchor="center")
+        else:
+            empty_label.place_forget()
 
     def view_details():
         selected = tree.selection()
@@ -225,12 +249,13 @@ def show_my_requests_frame(parent, current_user):
         win = tk.Toplevel(parent)
         win.transient(parent.winfo_toplevel())
         win.title(f"Request Details - {jid}")
-        win.geometry("540x500")
+        win.configure(bg=theme.BG_SURFACE)
+        theme.center_window(win, 620, 560, 540, 500)
 
-        txt_frame = ttk.Frame(win, padding=15)
+        txt_frame = ttk.Frame(win, style="Surface.TFrame", padding=20)
         txt_frame.pack(fill="both", expand=True)
 
-        text_widget = tk.Text(txt_frame, font=("Courier New", 10))
+        text_widget = tk.Text(txt_frame, font=theme.FONT_MONO, bg=theme.BG_SURFACE, relief="solid", borderwidth=1)
         scroll = ttk.Scrollbar(txt_frame, orient="vertical", command=text_widget.yview)
         text_widget.configure(yscrollcommand=scroll.set)
         text_widget.pack(side="left", fill="both", expand=True)
@@ -277,6 +302,10 @@ def show_my_requests_frame(parent, current_user):
         text_widget.insert(tk.END, "\n".join(lines))
         text_widget.configure(state="disabled")
 
+        btn_box = ttk.Frame(win, style="Surface.TFrame", padding=(20, 0, 20, 16))
+        btn_box.pack(fill="x")
+        ttk.Button(btn_box, text="Close", style="Secondary.TButton", command=win.destroy).pack(side="right")
+
     def cancel_request():
         selected = tree.selection()
         if not selected:
@@ -289,7 +318,6 @@ def show_my_requests_frame(parent, current_user):
         if not job:
             return
 
-        # Allowed ONLY while Pending Drop-off
         if job.get("status") != "Pending Drop-off":
             messagebox.showwarning(
                 "Cancellation Blocked",
@@ -315,51 +343,49 @@ def show_my_requests_frame(parent, current_user):
         messagebox.showinfo("Cancelled", f"Request {jid} has been cancelled.")
         refresh_table()
 
-    btn_bar = ttk.Frame(frame)
-    btn_bar.pack(fill="x", pady=(10, 0))
-
-    ttk.Button(btn_bar, text="View Details", command=view_details).pack(side="left", padx=5)
-    ttk.Button(btn_bar, text="Cancel Request", command=cancel_request).pack(side="left", padx=5)
+    ttk.Button(btn_bar, text="View Details", style="Secondary.TButton", command=view_details).pack(side="left", padx=(0, 6))
+    ttk.Button(btn_bar, text="Cancel Request", style="Danger.TButton", command=cancel_request).pack(side="left")
 
     refresh_table()
-    return frame
+    return card
 
 
 def show_my_receipts_frame(parent, current_user):
     """
-    Shows paid jobs and official receipts for the logged-in customer.
+    Shows paid jobs and official receipts for the logged-in customer in a modern card.
     """
-    frame = ttk.Frame(parent, padding=10)
-    frame.pack(fill="both", expand=True)
+    card = ttk.Frame(parent, style="Card.TFrame", padding=16)
+    card.pack(fill="both", expand=True)
 
-    header_frame = ttk.Frame(frame)
-    header_frame.pack(fill="x", pady=(0, 10))
+    toolbar = ttk.Frame(card, style="Surface.TFrame")
+    toolbar.pack(fill="x", pady=(0, 12))
 
-    ttk.Label(
-        header_frame,
-        text="My Receipts & Invoices",
-        font=("Arial", 14, "bold")
-    ).pack(side="left")
+    btn_bar = ttk.Frame(toolbar, style="Surface.TFrame")
+    btn_bar.pack(side="left")
 
-    table_frame = ttk.Frame(frame)
+    table_frame = ttk.Frame(card, style="Surface.TFrame")
     table_frame.pack(fill="both", expand=True)
 
     columns = ("job_id", "device", "total_bill", "total_paid", "balance", "status")
     tree = ttk.Treeview(table_frame, columns=columns, show="headings", selectmode="browse")
 
     tree.heading("job_id", text="Job ID")
-    tree.heading("device", text="Device")
+    tree.heading("device", text="Device Description")
     tree.heading("total_bill", text="Total Bill (PHP)")
     tree.heading("total_paid", text="Paid (PHP)")
     tree.heading("balance", text="Balance (PHP)")
     tree.heading("status", text="Payment Status")
 
-    tree.column("job_id", width=90, anchor="center")
-    tree.column("device", width=200)
-    tree.column("total_bill", width=120, anchor="e")
-    tree.column("total_paid", width=120, anchor="e")
-    tree.column("balance", width=120, anchor="e")
-    tree.column("status", width=130, anchor="center")
+    tree.column("job_id", width=100, anchor="center")
+    tree.column("device", width=220)
+    tree.column("total_bill", width=130, anchor="e")
+    tree.column("total_paid", width=130, anchor="e")
+    tree.column("balance", width=130, anchor="e")
+    tree.column("status", width=140, anchor="center")
+
+    theme.setup_treeview_tags(tree)
+    tree.tag_configure("fully_paid", foreground=theme.COLOR_SUCCESS, font=theme.FONT_BODY_BOLD)
+    tree.tag_configure("balance_due", foreground=theme.COLOR_WARNING, font=theme.FONT_BODY_BOLD)
 
     scrollbar_y = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
     tree.configure(yscrollcommand=scrollbar_y.set)
@@ -367,6 +393,13 @@ def show_my_receipts_frame(parent, current_user):
     scrollbar_y.pack(side="right", fill="y")
 
     my_cust_id = current_user.get("customer_id", "")
+
+    empty_label = ttk.Label(
+        card,
+        text="No invoices or receipts found for your account.",
+        style="SurfaceMuted.TLabel",
+        font=theme.FONT_BODY
+    )
 
     def refresh_table():
         for row in tree.get_children():
@@ -378,17 +411,20 @@ def show_my_receipts_frame(parent, current_user):
         all_payments = storage.load_payments()
 
         my_jobs = [j for j in jobs if j.get("customer_id") == my_cust_id]
+        displayed_count = 0
 
-        for j in my_jobs:
+        for idx, j in enumerate(my_jobs):
             jid = j.get("job_id", "")
             dev = f"{j.get('brand', '')} {j.get('model', '')}".strip() or j.get("device_type", "")
             total = models.compute_job_total(j, all_services, all_parts)
             paid = models.compute_payments_total(jid, all_payments)
             balance = models.compute_balance(j, all_services, all_parts, all_payments)
 
-            # Only show if there's a bill or payment recorded
             if total > 0 or paid > 0:
                 p_status = "Fully Paid" if balance <= 0.0 else "Balance Due"
+                zebra_tag = "even" if idx % 2 == 0 else "odd"
+                pay_tag = "fully_paid" if balance <= 0.0 else "balance_due"
+
                 tree.insert("", "end", values=(
                     jid,
                     dev,
@@ -396,7 +432,13 @@ def show_my_receipts_frame(parent, current_user):
                     f"{paid:,.2f}",
                     f"{balance:,.2f}",
                     p_status
-                ))
+                ), tags=(zebra_tag, pay_tag))
+                displayed_count += 1
+
+        if displayed_count == 0:
+            empty_label.place(relx=0.5, rely=0.5, anchor="center")
+        else:
+            empty_label.place_forget()
 
     def view_receipt():
         selected = tree.selection()
@@ -427,12 +469,13 @@ def show_my_receipts_frame(parent, current_user):
         rec_win = tk.Toplevel(parent)
         rec_win.transient(parent.winfo_toplevel())
         rec_win.title(f"Receipt - {jid}")
-        rec_win.geometry("560x520")
+        rec_win.configure(bg=theme.BG_SURFACE)
+        theme.center_window(rec_win, 620, 580, 560, 500)
 
-        txt_frame = ttk.Frame(rec_win, padding=15)
+        txt_frame = ttk.Frame(rec_win, style="Surface.TFrame", padding=20)
         txt_frame.pack(fill="both", expand=True)
 
-        text_widget = tk.Text(txt_frame, font=("Courier New", 10))
+        text_widget = tk.Text(txt_frame, font=theme.FONT_MONO, bg=theme.BG_SURFACE, relief="solid", borderwidth=1)
         scroll = ttk.Scrollbar(txt_frame, orient="vertical", command=text_widget.yview)
         text_widget.configure(yscrollcommand=scroll.set)
         text_widget.pack(side="left", fill="both", expand=True)
@@ -485,77 +528,89 @@ def show_my_receipts_frame(parent, current_user):
             except Exception as e:
                 messagebox.showerror("Error", f"Could not save receipt: {e}", parent=rec_win)
 
-        btn_box = ttk.Frame(rec_win, padding=(15, 0, 15, 10))
+        btn_box = ttk.Frame(rec_win, style="Surface.TFrame", padding=(20, 0, 20, 16))
         btn_box.pack(fill="x")
-        ttk.Button(btn_box, text="Export as .txt", command=export_receipt).pack(side="left", padx=5)
-        ttk.Button(btn_box, text="Close", command=rec_win.destroy).pack(side="right", padx=5)
+        ttk.Button(btn_box, text="Close", style="Secondary.TButton", command=rec_win.destroy).pack(side="left")
+        ttk.Button(btn_box, text="Export as .txt", style="Primary.TButton", command=export_receipt).pack(side="right")
 
-    btn_bar = ttk.Frame(frame)
-    btn_bar.pack(fill="x", pady=(10, 0))
-    ttk.Button(btn_bar, text="View Official Receipt", command=view_receipt).pack(side="left", padx=5)
+    ttk.Button(btn_bar, text="View Official Receipt", style="Primary.TButton", command=view_receipt).pack(side="left")
 
     refresh_table()
-    return frame
+    return card
 
 
 def show_profile_frame(parent, current_user):
     """
-    Profile management: edit own details and change password.
+    Profile management: edit own details and change password in a clean card layout.
     """
-    frame = ttk.Frame(parent, padding=15)
-    frame.pack(fill="both", expand=True)
+    card = ttk.Frame(parent, style="Card.TFrame", padding=24)
+    card.pack(fill="both", expand=True)
 
     ttk.Label(
-        frame,
-        text="My Profile & Account Settings",
-        font=("Arial", 14, "bold")
-    ).pack(anchor="w", pady=(0, 15))
+        card,
+        text="Account Profile & Settings",
+        style="Surface.TLabel",
+        font=theme.FONT_SECTION
+    ).pack(anchor="w")
+
+    ttk.Label(
+        card,
+        text="Manage your contact information and change your password.",
+        style="SurfaceMuted.TLabel"
+    ).pack(anchor="w", pady=(2, 16))
 
     customers = storage.load_customers()
     my_cust_id = current_user.get("customer_id", "")
     customer = next((c for c in customers if c.get("customer_id") == my_cust_id), None)
 
-    profile_box = ttk.LabelFrame(frame, text="Contact Information", padding=15)
-    profile_box.pack(fill="x", pady=(0, 15))
+    # 1. Contact Information Card
+    profile_box = ttk.LabelFrame(card, text="Contact Details", padding=16)
+    profile_box.pack(fill="x", pady=(0, 16))
 
-    ttk.Label(profile_box, text="Customer ID:").grid(row=0, column=0, sticky="w", pady=6)
-    ttk.Label(profile_box, text=my_cust_id, font=("Arial", 10, "bold")).grid(row=0, column=1, sticky="w", pady=6, padx=(10, 0))
+    grid1 = ttk.Frame(profile_box, style="Surface.TFrame")
+    grid1.pack(fill="x")
 
-    ttk.Label(profile_box, text="Full Name:").grid(row=1, column=0, sticky="w", pady=6)
-    name_entry = ttk.Entry(profile_box, width=30)
-    name_entry.grid(row=1, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid1, text="Customer ID:", style="Surface.TLabel").grid(row=0, column=0, sticky="w", pady=6)
+    ttk.Label(grid1, text=my_cust_id, style="Surface.TLabel", font=theme.FONT_BODY_BOLD).grid(row=0, column=1, sticky="w", pady=6, padx=(12, 0))
+
+    ttk.Label(grid1, text="Full Name *:", style="Surface.TLabel").grid(row=1, column=0, sticky="w", pady=6)
+    name_entry = ttk.Entry(grid1, width=32)
+    name_entry.grid(row=1, column=1, sticky="w", pady=6, padx=(12, 0))
     name_entry.insert(0, customer.get("name", "") if customer else current_user.get("full_name", ""))
 
-    ttk.Label(profile_box, text="Contact No:").grid(row=2, column=0, sticky="w", pady=6)
-    contact_entry = ttk.Entry(profile_box, width=30)
-    contact_entry.grid(row=2, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid1, text="Contact No *:", style="Surface.TLabel").grid(row=2, column=0, sticky="w", pady=6)
+    contact_entry = ttk.Entry(grid1, width=32)
+    contact_entry.grid(row=2, column=1, sticky="w", pady=6, padx=(12, 0))
     contact_entry.insert(0, customer.get("contact_no", "") if customer else "")
 
-    ttk.Label(profile_box, text="Email:").grid(row=3, column=0, sticky="w", pady=6)
-    email_entry = ttk.Entry(profile_box, width=30)
-    email_entry.grid(row=3, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid1, text="Email Address *:", style="Surface.TLabel").grid(row=3, column=0, sticky="w", pady=6)
+    email_entry = ttk.Entry(grid1, width=32)
+    email_entry.grid(row=3, column=1, sticky="w", pady=6, padx=(12, 0))
     email_entry.insert(0, customer.get("email", "") if customer else "")
 
-    ttk.Label(profile_box, text="Address:").grid(row=4, column=0, sticky="w", pady=6)
-    address_entry = ttk.Entry(profile_box, width=30)
-    address_entry.grid(row=4, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid1, text="Address *:", style="Surface.TLabel").grid(row=4, column=0, sticky="w", pady=6)
+    address_entry = ttk.Entry(grid1, width=32)
+    address_entry.grid(row=4, column=1, sticky="w", pady=6, padx=(12, 0))
     address_entry.insert(0, customer.get("address", "") if customer else "")
 
-    # Password Change Section
-    pwd_box = ttk.LabelFrame(frame, text="Change Password", padding=15)
-    pwd_box.pack(fill="x", pady=(0, 15))
+    # 2. Password Change Section
+    pwd_box = ttk.LabelFrame(card, text="Change Password (Optional)", padding=16)
+    pwd_box.pack(fill="x", pady=(0, 20))
 
-    ttk.Label(pwd_box, text="Current Password:").grid(row=0, column=0, sticky="w", pady=6)
-    curr_pwd_entry = ttk.Entry(pwd_box, width=25, show="*")
-    curr_pwd_entry.grid(row=0, column=1, sticky="w", pady=6, padx=(10, 0))
+    grid2 = ttk.Frame(pwd_box, style="Surface.TFrame")
+    grid2.pack(fill="x")
 
-    ttk.Label(pwd_box, text="New Password:").grid(row=1, column=0, sticky="w", pady=6)
-    new_pwd_entry = ttk.Entry(pwd_box, width=25, show="*")
-    new_pwd_entry.grid(row=1, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid2, text="Current Password:", style="Surface.TLabel").grid(row=0, column=0, sticky="w", pady=6)
+    curr_pwd_entry = ttk.Entry(grid2, width=28, show="*")
+    curr_pwd_entry.grid(row=0, column=1, sticky="w", pady=6, padx=(12, 0))
 
-    ttk.Label(pwd_box, text="Confirm New Password:").grid(row=2, column=0, sticky="w", pady=6)
-    confirm_pwd_entry = ttk.Entry(pwd_box, width=25, show="*")
-    confirm_pwd_entry.grid(row=2, column=1, sticky="w", pady=6, padx=(10, 0))
+    ttk.Label(grid2, text="New Password:", style="Surface.TLabel").grid(row=1, column=0, sticky="w", pady=6)
+    new_pwd_entry = ttk.Entry(grid2, width=28, show="*")
+    new_pwd_entry.grid(row=1, column=1, sticky="w", pady=6, padx=(12, 0))
+
+    ttk.Label(grid2, text="Confirm New Password:", style="Surface.TLabel").grid(row=2, column=0, sticky="w", pady=6)
+    confirm_pwd_entry = ttk.Entry(grid2, width=28, show="*")
+    confirm_pwd_entry.grid(row=2, column=1, sticky="w", pady=6, padx=(12, 0))
 
     def save_profile():
         new_name = name_entry.get().strip()
@@ -576,7 +631,6 @@ def show_profile_frame(parent, current_user):
             messagebox.showerror("Validation Error", "Address is required.")
             return
 
-        # Check password change
         curr_pwd = curr_pwd_entry.get().strip()
         new_pwd = new_pwd_entry.get().strip()
         confirm_pwd = confirm_pwd_entry.get().strip()
@@ -594,7 +648,6 @@ def show_profile_frame(parent, current_user):
                 return
             change_pwd = True
 
-        # Update customer record
         all_custs = storage.load_customers()
         for c in all_custs:
             if c.get("customer_id") == my_cust_id:
@@ -605,7 +658,6 @@ def show_profile_frame(parent, current_user):
                 break
         storage.save_customers(all_custs)
 
-        # Update user record
         all_users = storage.load_users()
         for u in all_users:
             if u.get("user_id") == current_user.get("user_id"):
@@ -623,8 +675,8 @@ def show_profile_frame(parent, current_user):
 
         messagebox.showinfo("Success", "Profile updated successfully.")
 
-    btn_row = ttk.Frame(frame)
+    btn_row = ttk.Frame(card, style="Surface.TFrame")
     btn_row.pack(fill="x")
-    ttk.Button(btn_row, text="Save Changes", command=save_profile).pack(side="left", padx=5)
+    ttk.Button(btn_row, text="Save Changes", style="Primary.TButton", command=save_profile).pack(side="left")
 
-    return frame
+    return card

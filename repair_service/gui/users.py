@@ -1,37 +1,35 @@
-# User accounts management module (Admin only - FR-05)
+# User accounts management module (Admin only) with modern table styling
 
 import tkinter as tk
 from tkinter import ttk, messagebox
 import storage
 import models
 import validators
+import gui.theme as theme
 
 
 def show_users_frame(parent, current_user):
     """
-    Renders user accounts table and add/edit/delete dialogs for Admin.
+    Renders user accounts table and restyled add/edit dialogs for Admin.
     """
-    frame = ttk.Frame(parent, padding=10)
-    frame.pack(fill="both", expand=True)
+    card = ttk.Frame(parent, style="Card.TFrame", padding=16)
+    card.pack(fill="both", expand=True)
 
-    header_frame = ttk.Frame(frame)
-    header_frame.pack(fill="x", pady=(0, 10))
+    toolbar = ttk.Frame(card, style="Surface.TFrame")
+    toolbar.pack(fill="x", pady=(0, 12))
 
-    ttk.Label(
-        header_frame,
-        text="User Accounts Management",
-        font=("Arial", 14, "bold")
-    ).pack(side="left")
+    btn_bar = ttk.Frame(toolbar, style="Surface.TFrame")
+    btn_bar.pack(side="left")
 
-    search_frame = ttk.Frame(header_frame)
+    search_frame = ttk.Frame(toolbar, style="Surface.TFrame")
     search_frame.pack(side="right")
 
-    ttk.Label(search_frame, text="Search:").pack(side="left", padx=(0, 5))
-    search_entry = ttk.Entry(search_frame, width=20)
+    ttk.Label(search_frame, text="Search:", style="Surface.TLabel", font=theme.FONT_BODY).pack(side="left", padx=(0, 6))
+    search_entry = ttk.Entry(search_frame, width=22)
     search_entry.pack(side="left")
 
     # Table with Treeview
-    table_frame = ttk.Frame(frame)
+    table_frame = ttk.Frame(card, style="Surface.TFrame")
     table_frame.pack(fill="both", expand=True)
 
     columns = ("user_id", "username", "role", "full_name", "customer_id")
@@ -41,18 +39,27 @@ def show_users_frame(parent, current_user):
     tree.heading("username", text="Username")
     tree.heading("role", text="Role")
     tree.heading("full_name", text="Full Name")
-    tree.heading("customer_id", text="Customer ID")
+    tree.heading("customer_id", text="Linked Customer ID")
 
-    tree.column("user_id", width=90, anchor="center")
-    tree.column("username", width=130)
-    tree.column("role", width=110, anchor="center")
-    tree.column("full_name", width=190)
-    tree.column("customer_id", width=110, anchor="center")
+    tree.column("user_id", width=100, anchor="center")
+    tree.column("username", width=150)
+    tree.column("role", width=120, anchor="center")
+    tree.column("full_name", width=220)
+    tree.column("customer_id", width=130, anchor="center")
+
+    theme.setup_treeview_tags(tree)
 
     scrollbar_y = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
     tree.configure(yscrollcommand=scrollbar_y.set)
     tree.pack(side="left", fill="both", expand=True)
     scrollbar_y.pack(side="right", fill="y")
+
+    empty_label = ttk.Label(
+        card,
+        text="No user accounts found.",
+        style="SurfaceMuted.TLabel",
+        font=theme.FONT_BODY
+    )
 
     def refresh_table(query=""):
         for row in tree.get_children():
@@ -60,8 +67,9 @@ def show_users_frame(parent, current_user):
 
         users = storage.load_users()
         query = query.strip().lower()
+        displayed_count = 0
 
-        for u in users:
+        for idx, u in enumerate(users):
             uid = u.get("user_id", "")
             uname = u.get("username", "")
             urole = u.get("role", "")
@@ -75,12 +83,16 @@ def show_users_frame(parent, current_user):
                     query not in cid.lower()):
                     continue
 
-            tree.insert("", "end", values=(uid, uname, urole, fname, cid))
+            tag = "even" if idx % 2 == 0 else "odd"
+            tree.insert("", "end", values=(uid, uname, urole, fname, cid or "—"), tags=(tag,))
+            displayed_count += 1
 
-    def on_search_change(event=None):
-        refresh_table(search_entry.get())
+        if displayed_count == 0:
+            empty_label.place(relx=0.5, rely=0.5, anchor="center")
+        else:
+            empty_label.place_forget()
 
-    search_entry.bind("<KeyRelease>", on_search_change)
+    search_entry.bind("<KeyRelease>", lambda e: refresh_table(search_entry.get()))
 
     # Add / Edit Dialog
     def open_user_dialog(user_to_edit=None):
@@ -91,27 +103,34 @@ def show_users_frame(parent, current_user):
         is_edit = user_to_edit is not None
         title_text = "Edit User Account" if is_edit else "Add New User Account"
         dialog.title(title_text)
-        dialog.geometry("400x300")
+        dialog.configure(bg=theme.BG_SURFACE)
+        theme.center_window(dialog, 460, 360, 420, 320)
         dialog.resizable(False, False)
 
-        form = ttk.Frame(dialog, padding=20)
+        form = ttk.Frame(dialog, style="Surface.TFrame", padding=24)
         form.pack(fill="both", expand=True)
 
-        ttk.Label(form, text="Full Name:").grid(row=0, column=0, sticky="w", pady=6)
-        name_entry = ttk.Entry(form, width=25)
-        name_entry.grid(row=0, column=1, pady=6, padx=(10, 0))
+        ttk.Label(form, text=title_text, style="Surface.TLabel", font=theme.FONT_SECTION).pack(anchor="w")
+        ttk.Label(form, text="Fields marked with * are required.", style="SurfaceMuted.TLabel").pack(anchor="w", pady=(2, 14))
 
-        ttk.Label(form, text="Username:").grid(row=1, column=0, sticky="w", pady=6)
-        uname_entry = ttk.Entry(form, width=25)
-        uname_entry.grid(row=1, column=1, pady=6, padx=(10, 0))
+        grid = ttk.Frame(form, style="Surface.TFrame")
+        grid.pack(fill="x")
 
-        ttk.Label(form, text="Password:").grid(row=2, column=0, sticky="w", pady=6)
-        pwd_entry = ttk.Entry(form, width=25, show="*")
-        pwd_entry.grid(row=2, column=1, pady=6, padx=(10, 0))
+        ttk.Label(grid, text="Full Name *:", style="Surface.TLabel").grid(row=0, column=0, sticky="w", pady=6)
+        name_entry = ttk.Entry(grid, width=26)
+        name_entry.grid(row=0, column=1, sticky="e", pady=6, padx=(10, 0))
 
-        ttk.Label(form, text="Role:").grid(row=3, column=0, sticky="w", pady=6)
-        role_combo = ttk.Combobox(form, values=["Admin", "Staff", "Technician"], state="readonly", width=22)
-        role_combo.grid(row=3, column=1, pady=6, padx=(10, 0))
+        ttk.Label(grid, text="Username *:", style="Surface.TLabel").grid(row=1, column=0, sticky="w", pady=6)
+        uname_entry = ttk.Entry(grid, width=26)
+        uname_entry.grid(row=1, column=1, sticky="e", pady=6, padx=(10, 0))
+
+        ttk.Label(grid, text="Password *:", style="Surface.TLabel").grid(row=2, column=0, sticky="w", pady=6)
+        pwd_entry = ttk.Entry(grid, width=26, show="*")
+        pwd_entry.grid(row=2, column=1, sticky="e", pady=6, padx=(10, 0))
+
+        ttk.Label(grid, text="System Role *:", style="Surface.TLabel").grid(row=3, column=0, sticky="w", pady=6)
+        role_combo = ttk.Combobox(grid, values=["Admin", "Staff", "Technician"], state="readonly", width=24)
+        role_combo.grid(row=3, column=1, sticky="e", pady=6, padx=(10, 0))
         role_combo.current(1)
 
         if is_edit:
@@ -140,7 +159,6 @@ def show_users_frame(parent, current_user):
 
             users = storage.load_users()
 
-            # Prevent duplicate usernames (FR-55)
             for u in users:
                 if u.get("username").lower() == uname.lower():
                     if is_edit and u.get("user_id") == user_to_edit.get("user_id"):
@@ -166,7 +184,8 @@ def show_users_frame(parent, current_user):
                     "username": uname,
                     "password": pwd,
                     "role": urole,
-                    "full_name": fname
+                    "full_name": fname,
+                    "customer_id": ""
                 }
                 users.append(new_user)
                 storage.save_users(users)
@@ -175,11 +194,11 @@ def show_users_frame(parent, current_user):
             dialog.destroy()
             refresh_table(search_entry.get())
 
-        btn_row = ttk.Frame(form)
-        btn_row.grid(row=4, column=0, columnspan=2, pady=(20, 0))
+        btn_row = ttk.Frame(form, style="Surface.TFrame")
+        btn_row.pack(fill="x", pady=(20, 0))
 
-        ttk.Button(btn_row, text="Save", command=save_user).pack(side="left", padx=5)
-        ttk.Button(btn_row, text="Cancel", command=dialog.destroy).pack(side="left", padx=5)
+        ttk.Button(btn_row, text="Cancel", style="Secondary.TButton", command=dialog.destroy).pack(side="left")
+        ttk.Button(btn_row, text="Save User", style="Primary.TButton", command=save_user).pack(side="right")
 
     def on_add():
         open_user_dialog()
@@ -203,7 +222,6 @@ def show_users_frame(parent, current_user):
         uid = tree.item(selected[0], "values")[0]
         uname = tree.item(selected[0], "values")[1]
 
-        # Prevent deleting current logged-in user
         if uid == current_user.get("user_id"):
             messagebox.showerror("Action Denied", "You cannot delete your own logged-in account.")
             return
@@ -218,12 +236,9 @@ def show_users_frame(parent, current_user):
         messagebox.showinfo("Deleted", f"User account '{uname}' deleted.")
         refresh_table(search_entry.get())
 
-    btn_bar = ttk.Frame(frame)
-    btn_bar.pack(fill="x", pady=(10, 0))
-
-    ttk.Button(btn_bar, text="Add User", command=on_add).pack(side="left", padx=5)
-    ttk.Button(btn_bar, text="Edit User", command=on_edit).pack(side="left", padx=5)
-    ttk.Button(btn_bar, text="Delete User", command=on_delete).pack(side="left", padx=5)
+    ttk.Button(btn_bar, text="Add User", style="Primary.TButton", command=on_add).pack(side="left", padx=(0, 6))
+    ttk.Button(btn_bar, text="Edit User", style="Secondary.TButton", command=on_edit).pack(side="left", padx=(0, 6))
+    ttk.Button(btn_bar, text="Delete User", style="Secondary.TButton", command=on_delete).pack(side="left")
 
     refresh_table()
-    return frame
+    return card

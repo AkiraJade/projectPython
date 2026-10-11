@@ -1,39 +1,36 @@
-# Customer management screen module
+# Customer management screen module with modern table styling and centered forms
 
 import tkinter as tk
 from tkinter import ttk, messagebox
 import storage
 import models
 import validators
+import gui.theme as theme
 
 
 def show_customers_frame(parent, current_user):
     """
-    Renders customer list table and management actions inside parent frame.
+    Renders customer list table and management actions inside a modern card.
     """
-    # Container frame
-    frame = ttk.Frame(parent, padding=10)
-    frame.pack(fill="both", expand=True)
+    card = ttk.Frame(parent, style="Card.TFrame", padding=16)
+    card.pack(fill="both", expand=True)
 
-    # Top header bar: Title and Search
-    header_frame = ttk.Frame(frame)
-    header_frame.pack(fill="x", pady=(0, 10))
+    # Top Toolbar: Action Buttons on Left, Search on Right
+    toolbar = ttk.Frame(card, style="Surface.TFrame")
+    toolbar.pack(fill="x", pady=(0, 12))
 
-    ttk.Label(
-        header_frame,
-        text="Customer Management",
-        font=("Arial", 14, "bold")
-    ).pack(side="left")
+    btn_bar = ttk.Frame(toolbar, style="Surface.TFrame")
+    btn_bar.pack(side="left")
 
-    search_frame = ttk.Frame(header_frame)
+    search_frame = ttk.Frame(toolbar, style="Surface.TFrame")
     search_frame.pack(side="right")
 
-    ttk.Label(search_frame, text="Search:").pack(side="left", padx=(0, 5))
+    ttk.Label(search_frame, text="Search:", style="Surface.TLabel", font=theme.FONT_BODY).pack(side="left", padx=(0, 6))
     search_entry = ttk.Entry(search_frame, width=22)
     search_entry.pack(side="left")
 
-    # Table frame with Treeview and Scrollbars
-    table_frame = ttk.Frame(frame)
+    # Table Container
+    table_frame = ttk.Frame(card, style="Surface.TFrame")
     table_frame.pack(fill="both", expand=True)
 
     columns = ("customer_id", "name", "contact_no", "email", "address")
@@ -42,50 +39,63 @@ def show_customers_frame(parent, current_user):
     tree.heading("customer_id", text="Customer ID")
     tree.heading("name", text="Full Name")
     tree.heading("contact_no", text="Contact No.")
-    tree.heading("email", text="Email")
+    tree.heading("email", text="Email Address")
     tree.heading("address", text="Address")
 
-    tree.column("customer_id", width=100, anchor="center")
-    tree.column("name", width=160)
-    tree.column("contact_no", width=120)
-    tree.column("email", width=180)
-    tree.column("address", width=220)
+    tree.column("customer_id", width=110, anchor="center")
+    tree.column("name", width=180)
+    tree.column("contact_no", width=130)
+    tree.column("email", width=200)
+    tree.column("address", width=250)
+
+    theme.setup_treeview_tags(tree)
 
     scrollbar_y = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
     tree.configure(yscrollcommand=scrollbar_y.set)
     tree.pack(side="left", fill="both", expand=True)
     scrollbar_y.pack(side="right", fill="y")
 
-    # Functions to refresh and filter table data
+    # Empty State Banner
+    empty_label = ttk.Label(
+        card,
+        text="No customer records found.",
+        style="SurfaceMuted.TLabel",
+        font=theme.FONT_BODY
+    )
+
     def refresh_table(query=""):
         for row in tree.get_children():
             tree.delete(row)
 
         customers = storage.load_customers()
         query = query.strip().lower()
+        displayed_count = 0
 
-        for c in customers:
+        for idx, c in enumerate(customers):
             cid = c.get("customer_id", "")
             name = c.get("name", "")
             contact = c.get("contact_no", "")
             email = c.get("email", "")
             address = c.get("address", "")
 
-            # Filter logic
             if query:
                 if (query not in cid.lower() and
                     query not in name.lower() and
                     query not in contact.lower()):
                     continue
 
-            tree.insert("", "end", values=(cid, name, contact, email, address))
+            tag = "even" if idx % 2 == 0 else "odd"
+            tree.insert("", "end", values=(cid, name, contact, email, address), tags=(tag,))
+            displayed_count += 1
 
-    def on_search_change(event=None):
-        refresh_table(search_entry.get())
+        if displayed_count == 0:
+            empty_label.place(relx=0.5, rely=0.5, anchor="center")
+        else:
+            empty_label.place_forget()
 
-    search_entry.bind("<KeyRelease>", on_search_change)
+    search_entry.bind("<KeyRelease>", lambda e: refresh_table(search_entry.get()))
 
-    # Dialog for Add / Edit
+    # Dialog for Add / Edit Customer
     def open_customer_dialog(customer_to_edit=None):
         dialog = tk.Toplevel(parent)
         dialog.transient(parent.winfo_toplevel())
@@ -94,27 +104,34 @@ def show_customers_frame(parent, current_user):
         is_edit = customer_to_edit is not None
         title_text = "Edit Customer" if is_edit else "Add New Customer"
         dialog.title(title_text)
-        dialog.geometry("400x320")
+        dialog.configure(bg=theme.BG_SURFACE)
+        theme.center_window(dialog, 460, 360, 420, 320)
         dialog.resizable(False, False)
 
-        form = ttk.Frame(dialog, padding=20)
+        form = ttk.Frame(dialog, style="Surface.TFrame", padding=24)
         form.pack(fill="both", expand=True)
 
-        ttk.Label(form, text="Full Name:").grid(row=0, column=0, sticky="w", pady=6)
-        name_entry = ttk.Entry(form, width=28)
-        name_entry.grid(row=0, column=1, pady=6, padx=(10, 0))
+        ttk.Label(form, text=title_text, style="Surface.TLabel", font=theme.FONT_SECTION).pack(anchor="w")
+        ttk.Label(form, text="Fields marked with * are required.", style="SurfaceMuted.TLabel").pack(anchor="w", pady=(2, 14))
 
-        ttk.Label(form, text="Contact No:").grid(row=1, column=0, sticky="w", pady=6)
-        contact_entry = ttk.Entry(form, width=28)
-        contact_entry.grid(row=1, column=1, pady=6, padx=(10, 0))
+        grid = ttk.Frame(form, style="Surface.TFrame")
+        grid.pack(fill="x")
 
-        ttk.Label(form, text="Email:").grid(row=2, column=0, sticky="w", pady=6)
-        email_entry = ttk.Entry(form, width=28)
-        email_entry.grid(row=2, column=1, pady=6, padx=(10, 0))
+        ttk.Label(grid, text="Full Name *:", style="Surface.TLabel").grid(row=0, column=0, sticky="w", pady=6)
+        name_entry = ttk.Entry(grid, width=28)
+        name_entry.grid(row=0, column=1, sticky="e", pady=6, padx=(10, 0))
 
-        ttk.Label(form, text="Address:").grid(row=3, column=0, sticky="w", pady=6)
-        address_entry = ttk.Entry(form, width=28)
-        address_entry.grid(row=3, column=1, pady=6, padx=(10, 0))
+        ttk.Label(grid, text="Contact No *:", style="Surface.TLabel").grid(row=1, column=0, sticky="w", pady=6)
+        contact_entry = ttk.Entry(grid, width=28)
+        contact_entry.grid(row=1, column=1, sticky="e", pady=6, padx=(10, 0))
+
+        ttk.Label(grid, text="Email Address *:", style="Surface.TLabel").grid(row=2, column=0, sticky="w", pady=6)
+        email_entry = ttk.Entry(grid, width=28)
+        email_entry.grid(row=2, column=1, sticky="e", pady=6, padx=(10, 0))
+
+        ttk.Label(grid, text="Address *:", style="Surface.TLabel").grid(row=3, column=0, sticky="w", pady=6)
+        address_entry = ttk.Entry(grid, width=28)
+        address_entry.grid(row=3, column=1, sticky="e", pady=6, padx=(10, 0))
 
         if is_edit:
             name_entry.insert(0, customer_to_edit.get("name", ""))
@@ -130,7 +147,6 @@ def show_customers_frame(parent, current_user):
             email = email_entry.get().strip()
             address = address_entry.get().strip()
 
-            # Validations
             if not validators.is_non_empty(name):
                 messagebox.showerror("Validation Error", "Full name is required.", parent=dialog)
                 return
@@ -173,14 +189,11 @@ def show_customers_frame(parent, current_user):
             dialog.destroy()
             refresh_table(search_entry.get())
 
-        btn_box = ttk.Frame(form)
-        btn_box.grid(row=4, column=0, columnspan=2, pady=(20, 0))
+        btn_row = ttk.Frame(form, style="Surface.TFrame")
+        btn_row.pack(fill="x", pady=(20, 0))
 
-        save_btn = ttk.Button(btn_box, text="Save", command=save_customer)
-        save_btn.pack(side="left", padx=5)
-
-        cancel_btn = ttk.Button(btn_box, text="Cancel", command=dialog.destroy)
-        cancel_btn.pack(side="left", padx=5)
+        ttk.Button(btn_row, text="Cancel", style="Secondary.TButton", command=dialog.destroy).pack(side="left")
+        ttk.Button(btn_row, text="Save Customer", style="Primary.TButton", command=save_customer).pack(side="right")
 
     def on_add():
         open_customer_dialog()
@@ -205,7 +218,6 @@ def show_customers_frame(parent, current_user):
         cid = tree.item(selected[0], "values")[0]
         name = tree.item(selected[0], "values")[1]
 
-        # Block deletion if customer has active jobs (FR-09)
         jobs = storage.load_jobs()
         active_jobs = [j for j in jobs if j.get("customer_id") == cid and j.get("status") in models.ACTIVE_STATUSES]
         if active_jobs:
@@ -223,8 +235,8 @@ def show_customers_frame(parent, current_user):
             return
 
         customers = storage.load_customers()
-        updated_customers = [c for c in customers if c.get("customer_id") != cid]
-        storage.save_customers(updated_customers)
+        updated = [c for c in customers if c.get("customer_id") != cid]
+        storage.save_customers(updated)
         messagebox.showinfo("Deleted", f"Customer {name} has been deleted.")
         refresh_table(search_entry.get())
 
@@ -242,59 +254,61 @@ def show_customers_frame(parent, current_user):
         history_win = tk.Toplevel(parent)
         history_win.transient(parent.winfo_toplevel())
         history_win.title(f"Repair History - {name} ({cid})")
-        history_win.geometry("620x350")
+        history_win.configure(bg=theme.BG_SURFACE)
+        theme.center_window(history_win, 680, 400, 600, 340)
 
-        hist_frame = ttk.Frame(history_win, padding=15)
+        hist_frame = ttk.Frame(history_win, style="Surface.TFrame", padding=20)
         hist_frame.pack(fill="both", expand=True)
 
         ttk.Label(
             hist_frame,
-            text=f"Repair History for {name}",
-            font=("Arial", 12, "bold")
+            text=f"Repair History for {name} ({cid})",
+            style="Surface.TLabel",
+            font=theme.FONT_SECTION
         ).pack(anchor="w", pady=(0, 10))
 
         if not cust_jobs:
-            ttk.Label(hist_frame, text="No repair jobs recorded for this customer.").pack(pady=20)
+            ttk.Label(hist_frame, text="No repair jobs recorded for this customer.", style="SurfaceMuted.TLabel").pack(pady=40)
         else:
             cols = ("job_id", "device", "problem", "status", "date")
             htree = ttk.Treeview(hist_frame, columns=cols, show="headings", height=8)
             htree.heading("job_id", text="Job ID")
             htree.heading("device", text="Device")
-            htree.heading("problem", text="Problem")
+            htree.heading("problem", text="Problem Description")
             htree.heading("status", text="Status")
             htree.heading("date", text="Date Received")
 
-            htree.column("job_id", width=80, anchor="center")
-            htree.column("device", width=120)
-            htree.column("problem", width=180)
-            htree.column("status", width=100, anchor="center")
-            htree.column("date", width=100, anchor="center")
+            htree.column("job_id", width=90, anchor="center")
+            htree.column("device", width=140)
+            htree.column("problem", width=220)
+            htree.column("status", width=110, anchor="center")
+            htree.column("date", width=120, anchor="center")
 
-            for j in cust_jobs:
+            theme.setup_treeview_tags(htree)
+
+            for idx, j in enumerate(cust_jobs):
                 dev = f"{j.get('brand', '')} {j.get('model', '')}".strip() or j.get("device_type", "")
+                stat = j.get("status", "")
+                zebra_tag = "even" if idx % 2 == 0 else "odd"
+                status_tag = f"status_{stat}"
                 htree.insert("", "end", values=(
                     j.get("job_id", ""),
                     dev,
                     j.get("problem", ""),
-                    j.get("status", ""),
+                    stat,
                     j.get("date_received", "")
-                ))
+                ), tags=(zebra_tag, status_tag))
 
             h_scroll = ttk.Scrollbar(hist_frame, orient="vertical", command=htree.yview)
             htree.configure(yscrollcommand=h_scroll.set)
             htree.pack(side="left", fill="both", expand=True)
             h_scroll.pack(side="right", fill="y")
 
-    # Action buttons bar
-    btn_bar = ttk.Frame(frame)
-    btn_bar.pack(fill="x", pady=(10, 0))
+    # Action buttons on Toolbar
+    ttk.Button(btn_bar, text="Add Customer", style="Primary.TButton", command=on_add).pack(side="left", padx=(0, 6))
+    ttk.Button(btn_bar, text="Edit Customer", style="Secondary.TButton", command=on_edit).pack(side="left", padx=(0, 6))
+    ttk.Button(btn_bar, text="Delete Customer", style="Secondary.TButton", command=on_delete).pack(side="left", padx=(0, 6))
+    ttk.Button(btn_bar, text="View History", style="Secondary.TButton", command=on_view_history).pack(side="left")
 
-    ttk.Button(btn_bar, text="Add Customer", command=on_add).pack(side="left", padx=5)
-    ttk.Button(btn_bar, text="Edit Customer", command=on_edit).pack(side="left", padx=5)
-    ttk.Button(btn_bar, text="Delete Customer", command=on_delete).pack(side="left", padx=5)
-    ttk.Button(btn_bar, text="View History", command=on_view_history).pack(side="left", padx=5)
-
-    # Initial load
     refresh_table()
-
-    return frame
+    return card

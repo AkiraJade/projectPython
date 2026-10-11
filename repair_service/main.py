@@ -1,23 +1,24 @@
 # Entry point for Computer & Laptop Repair Service System
 
 import tkinter as tk
-from tkinter import ttk
 import storage
 import gui.login as login_gui
 import gui.dashboard as dashboard_gui
+import gui.theme as theme
 
 
 def main():
+    # Enable crisp rendering on Windows
+    theme.enable_dpi_awareness()
+
     # Initialize data folder and seed records
     storage.init_storage()
 
     root = tk.Tk()
     root.title("Computer & Laptop Repair Service System")
 
-    # Set ttk theme to default standard theme
-    style = ttk.Style()
-    if "clam" in style.theme_names():
-        style.theme_use("clam")
+    # Apply global modern light dashboard theme
+    theme.apply_theme(root)
 
     def open_dashboard(user):
         dashboard_gui.show_dashboard_window(root, user, on_logout=open_login)

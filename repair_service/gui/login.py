@@ -1,56 +1,94 @@
-# Login screen module with Customer registration
+# Login screen module with modern split-panel layout and clean registration dialog
 
 import tkinter as tk
 from tkinter import ttk, messagebox
 import storage
 import models
 import validators
+import gui.theme as theme
 
 
 def show_login_window(root, on_login_success):
     """
-    Renders the login screen inside root window.
+    Renders modern split-panel login screen inside root window.
     When login succeeds, calls on_login_success(logged_in_user).
     """
-    # Clear any previous widgets in root
     for widget in root.winfo_children():
         widget.destroy()
 
-    root.title("Computer & Laptop Repair Service - Login")
-    root.geometry("420x350")
+    root.title("Computer & Laptop Repair Service System - Login")
+    theme.center_window(root, 680, 400, 600, 360)
     root.resizable(False, False)
 
-    # Center container frame
-    container = ttk.Frame(root, padding=25)
-    container.pack(expand=True, fill="both")
+    # Main container
+    container = ttk.Frame(root)
+    container.pack(fill="both", expand=True)
 
-    # Header title
-    title_label = ttk.Label(
-        container,
-        text="Repair Service System",
-        font=("Arial", 16, "bold")
+    # 1. Left Brand Panel (Slate Sidebar Theme)
+    brand_panel = ttk.Frame(container, style="Sidebar.TFrame", padding=30)
+    brand_panel.pack(side="left", fill="both", expand=False)
+    brand_panel.configure(width=260)
+    brand_panel.pack_propagate(False)
+
+    ttk.Label(
+        brand_panel,
+        text="TechRepair",
+        style="Brand.TLabel",
+        font=("Segoe UI", 16, "bold")
+    ).pack(anchor="w", pady=(20, 6))
+
+    ttk.Label(
+        brand_panel,
+        text="Computer & Laptop\nRepair Service System",
+        background=theme.BG_SIDEBAR,
+        foreground="#CBD5E1",
+        font=("Segoe UI", 11)
+    ).pack(anchor="w", pady=(0, 20))
+
+    ttk.Separator(brand_panel).pack(fill="x", pady=(0, 20))
+
+    info_text = (
+        "Streamlined repair tracking,\n"
+        "device intake management,\n"
+        "and client invoicing."
     )
-    title_label.pack(pady=(0, 5))
+    ttk.Label(
+        brand_panel,
+        text=info_text,
+        background=theme.BG_SIDEBAR,
+        foreground="#94A3B8",
+        font=theme.FONT_MUTED
+    ).pack(anchor="w")
 
-    subtitle_label = ttk.Label(
-        container,
-        text="Please log in with your credentials",
-        font=("Arial", 9)
-    )
-    subtitle_label.pack(pady=(0, 15))
+    # 2. Right Form Panel (White Surface)
+    form_panel = ttk.Frame(container, style="Surface.TFrame", padding=(35, 30))
+    form_panel.pack(side="right", fill="both", expand=True)
 
-    # Form fields frame
-    form_frame = ttk.Frame(container)
-    form_frame.pack(fill="x")
+    ttk.Label(
+        form_panel,
+        text="Sign In",
+        style="Surface.TLabel",
+        font=theme.FONT_TITLE
+    ).pack(anchor="w")
 
-    ttk.Label(form_frame, text="Username:").grid(row=0, column=0, sticky="w", pady=6)
-    username_entry = ttk.Entry(form_frame, width=28)
-    username_entry.grid(row=0, column=1, pady=6, padx=(10, 0))
+    ttk.Label(
+        form_panel,
+        text="Enter your credentials to access your dashboard",
+        style="SurfaceMuted.TLabel"
+    ).pack(anchor="w", pady=(2, 20))
+
+    # Form inputs
+    inputs_frame = ttk.Frame(form_panel, style="Surface.TFrame")
+    inputs_frame.pack(fill="x")
+
+    ttk.Label(inputs_frame, text="Username", style="Surface.TLabel", font=theme.FONT_BODY_BOLD).pack(anchor="w", pady=(0, 4))
+    username_entry = ttk.Entry(inputs_frame, width=32)
+    username_entry.pack(fill="x", pady=(0, 14))
     username_entry.focus()
 
-    ttk.Label(form_frame, text="Password:").grid(row=1, column=0, sticky="w", pady=6)
-    password_entry = ttk.Entry(form_frame, width=28, show="*")
-    password_entry.grid(row=1, column=1, pady=6, padx=(10, 0))
+    ttk.Label(inputs_frame, text="Password", style="Surface.TLabel", font=theme.FONT_BODY_BOLD).pack(anchor="w", pady=(0, 4))
+    password_entry = ttk.Entry(inputs_frame, width=32, show="*")
+    password_entry.pack(fill="x", pady=(0, 20))
 
     def attempt_login(event=None):
         uname = username_entry.get().strip()
@@ -78,47 +116,61 @@ def show_login_window(root, on_login_success):
         dialog.transient(root)
         dialog.grab_set()
         dialog.title("Customer Registration")
-        dialog.geometry("420x380")
+        dialog.configure(bg=theme.BG_SURFACE)
+        theme.center_window(dialog, 460, 460, 420, 420)
         dialog.resizable(False, False)
 
-        form = ttk.Frame(dialog, padding=20)
+        form = ttk.Frame(dialog, style="Surface.TFrame", padding=25)
         form.pack(fill="both", expand=True)
 
-        ttk.Label(form, text="Create Customer Account", font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=2, pady=(0, 15), sticky="w")
+        ttk.Label(
+            form,
+            text="Create Customer Account",
+            style="Surface.TLabel",
+            font=theme.FONT_SECTION
+        ).pack(anchor="w")
 
-        ttk.Label(form, text="Full Name:").grid(row=1, column=0, sticky="w", pady=5)
-        name_entry = ttk.Entry(form, width=26)
-        name_entry.grid(row=1, column=1, pady=5, padx=(10, 0))
+        ttk.Label(
+            form,
+            text="Register to track repairs and submit service requests online",
+            style="SurfaceMuted.TLabel"
+        ).pack(anchor="w", pady=(2, 16))
 
-        ttk.Label(form, text="Contact No:").grid(row=2, column=0, sticky="w", pady=5)
-        contact_entry = ttk.Entry(form, width=26)
-        contact_entry.grid(row=2, column=1, pady=5, padx=(10, 0))
+        grid_frame = ttk.Frame(form, style="Surface.TFrame")
+        grid_frame.pack(fill="x")
 
-        ttk.Label(form, text="Email:").grid(row=3, column=0, sticky="w", pady=5)
-        email_entry = ttk.Entry(form, width=26)
-        email_entry.grid(row=3, column=1, pady=5, padx=(10, 0))
+        fields = [
+            ("Full Name:", 0),
+            ("Contact Number:", 1),
+            ("Email Address:", 2),
+            ("Home / Office Address:", 3),
+            ("Username:", 4),
+            ("Password:", 5),
+        ]
 
-        ttk.Label(form, text="Address:").grid(row=4, column=0, sticky="w", pady=5)
-        address_entry = ttk.Entry(form, width=26)
-        address_entry.grid(row=4, column=1, pady=5, padx=(10, 0))
+        entries = {}
+        for label_text, row_idx in fields:
+            ttk.Label(
+                grid_frame,
+                text=label_text,
+                style="Surface.TLabel",
+                font=theme.FONT_BODY
+            ).grid(row=row_idx, column=0, sticky="w", pady=5)
 
-        ttk.Label(form, text="Username:").grid(row=5, column=0, sticky="w", pady=5)
-        reg_uname_entry = ttk.Entry(form, width=26)
-        reg_uname_entry.grid(row=5, column=1, pady=5, padx=(10, 0))
+            is_pwd = label_text.startswith("Password")
+            ent = ttk.Entry(grid_frame, width=28, show="*" if is_pwd else "")
+            ent.grid(row=row_idx, column=1, sticky="e", pady=5, padx=(12, 0))
+            entries[label_text] = ent
 
-        ttk.Label(form, text="Password:").grid(row=6, column=0, sticky="w", pady=5)
-        reg_pwd_entry = ttk.Entry(form, width=26, show="*")
-        reg_pwd_entry.grid(row=6, column=1, pady=5, padx=(10, 0))
-
-        name_entry.focus()
+        entries["Full Name:"].focus()
 
         def submit_registration():
-            full_name = name_entry.get().strip()
-            contact_no = contact_entry.get().strip()
-            email = email_entry.get().strip()
-            address = address_entry.get().strip()
-            username = reg_uname_entry.get().strip()
-            password = reg_pwd_entry.get().strip()
+            full_name = entries["Full Name:"].get().strip()
+            contact_no = entries["Contact Number:"].get().strip()
+            email = entries["Email Address:"].get().strip()
+            address = entries["Home / Office Address:"].get().strip()
+            username = entries["Username:"].get().strip()
+            password = entries["Password:"].get().strip()
 
             if not validators.is_non_empty(full_name):
                 messagebox.showerror("Validation Error", "Full Name is required.", parent=dialog)
@@ -142,7 +194,7 @@ def show_login_window(root, on_login_success):
             users = storage.load_users()
             for u in users:
                 if u.get("username", "").lower() == username.lower():
-                    messagebox.showerror("Username Taken", f"Username '{username}' is already in use. Please choose another.", parent=dialog)
+                    messagebox.showerror("Username Taken", f"Username '{username}' is already taken.", parent=dialog)
                     return
 
             customers = storage.load_customers()
@@ -171,33 +223,40 @@ def show_login_window(root, on_login_success):
 
             messagebox.showinfo(
                 "Registration Successful",
-                f"Customer account created successfully!\nCustomer ID: {new_cust_id}\nUsername: {username}\nYou can now log in.",
+                f"Customer account created successfully!\n\nCustomer ID: {new_cust_id}\nUsername: {username}\n\nYou may now sign in.",
                 parent=dialog
             )
             dialog.destroy()
 
-            # Pre-fill login username
             username_entry.delete(0, tk.END)
             username_entry.insert(0, username)
             password_entry.delete(0, tk.END)
             password_entry.focus()
 
-        btn_box = ttk.Frame(form)
-        btn_box.grid(row=7, column=0, columnspan=2, pady=(20, 0))
+        btn_row = ttk.Frame(form, style="Surface.TFrame")
+        btn_row.pack(fill="x", pady=(24, 0))
 
-        ttk.Button(btn_box, text="Register", command=submit_registration).pack(side="left", padx=5)
-        ttk.Button(btn_box, text="Cancel", command=dialog.destroy).pack(side="left", padx=5)
+        ttk.Button(
+            btn_row,
+            text="Cancel",
+            style="Secondary.TButton",
+            command=dialog.destroy
+        ).pack(side="left")
 
-    # Bind Enter key to submit
+        ttk.Button(
+            btn_row,
+            text="Create Account",
+            style="Primary.TButton",
+            command=submit_registration
+        ).pack(side="right")
+
+    # Enter key binding
     password_entry.bind("<Return>", attempt_login)
     username_entry.bind("<Return>", attempt_login)
 
-    # Action buttons
-    button_frame = ttk.Frame(container)
-    button_frame.pack(fill="x", pady=(15, 0))
+    # Buttons
+    login_btn = ttk.Button(form_panel, text="Sign In", style="Primary.TButton", command=attempt_login)
+    login_btn.pack(fill="x", pady=(0, 10))
 
-    login_button = ttk.Button(button_frame, text="Log In", command=attempt_login)
-    login_button.pack(fill="x", pady=(0, 6))
-
-    register_button = ttk.Button(button_frame, text="Register as Customer", command=open_register_dialog)
-    register_button.pack(fill="x")
+    register_btn = ttk.Button(form_panel, text="Create a Customer Account", style="Secondary.TButton", command=open_register_dialog)
+    register_btn.pack(fill="x")
