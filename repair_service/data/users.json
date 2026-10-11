@@ -22,5 +22,13 @@
     "role": "Technician",
     "full_name": "John Technician",
     "customer_id": ""
+  },
+  {
+    "user_id": "USR-004",
+    "username": "customer1",
+    "password": "customer123",
+    "role": "Customer",
+    "full_name": "Juan Customer",
+    "customer_id": "CUST-001"
   }
 ]

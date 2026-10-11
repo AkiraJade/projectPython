@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "customer_id": "CUST-001",
+    "name": "Juan Customer",
+    "contact_no": "09123456789",
+    "email": "juan@example.com",
+    "address": "Manila, Philippines"
+  }
+]

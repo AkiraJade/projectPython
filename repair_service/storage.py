@@ -54,6 +54,14 @@ def init_storage():
                     "role": "Technician",
                     "full_name": "John Technician",
                     "customer_id": ""
+                },
+                {
+                    "user_id": "USR-004",
+                    "username": "customer1",
+                    "password": "customer123",
+                    "role": "Customer",
+                    "full_name": "Juan Customer",
+                    "customer_id": "CUST-001"
                 }
             ]
             save_data(USERS_FILE, default_users)
@@ -86,8 +94,21 @@ def init_storage():
             ]
             save_data(PARTS_FILE, default_parts)
 
+        # Seed customers if missing or empty list
+        if len(load_customers()) == 0:
+            default_customers = [
+                {
+                    "customer_id": "CUST-001",
+                    "name": "Juan Customer",
+                    "contact_no": "09123456789",
+                    "email": "juan@example.com",
+                    "address": "Manila, Philippines"
+                }
+            ]
+            save_customers(default_customers)
+
         # Initialize empty files if missing
-        for filename in [CUSTOMERS_FILE, JOBS_FILE, PAYMENTS_FILE]:
+        for filename in [JOBS_FILE, PAYMENTS_FILE]:
             fpath = get_file_path(filename)
             if not os.path.exists(fpath):
                 save_data(filename, [])
